@@ -68,7 +68,7 @@ class nav_cloning_node:
         # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/v2_net/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
         #self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_new/model_gpu.pt'
-        # self.load_path= '/home/takumi/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
+        # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
         
         self.previous_reset_time = 0
         self.pos_x = 0.0
