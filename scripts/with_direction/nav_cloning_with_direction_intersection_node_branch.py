@@ -44,7 +44,7 @@ class nav_cloning_node:
         self.action_pub = rospy.Publisher("action", Int8, queue_size=1)
         self.nav_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.srv = rospy.Service('/training', SetBool, self.callback_dl_training)
-        self.loop_count_srv = rospy.Service('loop_count',SetBool,self.loop_count_callback)
+        # self.loop_count_srv = rospy.Service('loop_count',SetBool,self.loop_count_callback)
         self.mode_save_srv = rospy.Service('/model_save', Trigger, self.callback_model_save)
         self.pose_sub = rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, self.callback_pose)
         self.path_sub = rospy.Subscriber("/move_base/NavfnROS/plan", Path, self.callback_path) 
@@ -76,7 +76,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num =12000
+        self.episode_num =8000
         self.target_dataset = 8500
         self.train_flag = False
         self.padding_data = 3
@@ -143,12 +143,12 @@ class nav_cloning_node:
         resp.success = True
         return resp
 
-    def loop_count_callback(self,data):
-        resp = SetBoolResponse()
-        self.loop_count_flag = data.data
-        resp.message = "count flag"
-        resp.success= True
-        return resp
+    # def loop_count_callback(self,data):
+    #     resp = SetBoolResponse()
+    #     self.loop_count_flag = data.data
+    #     resp.message = "count flag"
+    #     resp.success= True
+    #     return resp
 
     def callback_model_save(self, data):
         model_res = SetBoolResponse()
@@ -189,13 +189,13 @@ class nav_cloning_node:
         #     self.dl.load(self.load_path)
         #     print("load model",self.load_path)
         
-        # if self.episode == self.episode_num:
-        #     self.learning = False
-        #     self.dl.save(self.save_path)
-        #     #self.dl.load(self.load_path)
-        # if self.episode == self.episode_num+20000:
-        #     os.system('killall roslaunch')
-        #     sys.exit()
+        if self.episode == self.episode_num:
+            self.learning = False
+            self.dl.save(self.save_path)
+            #self.dl.load(self.load_path)
+        if self.episode == self.episode_num+20000:
+            os.system('killall roslaunch')
+            sys.exit()
 
         if self.learning:
             target_action = self.action
@@ -297,10 +297,10 @@ class nav_cloning_node:
 
             print(str(self.episode) + ", training, loss: " + str(loss) + ", angle_error: " + str(angle_error) + ", distance: " + str(distance) + ", self.cmd_dir_data: " + str(self.cmd_dir_data))
             self.episode += 1
-            #line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the), str(self.cmd_dir_data)]
-            #with open(self.path + self.start_time + '/' + 'training.csv', 'a') as f:
-            #    writer = csv.writer(f, lineterminator='\n')
-            #    writer.writerow(line)
+            line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the), str(self.cmd_dir_data)]
+            with open(self.path + self.start_time + '/' + 'training.csv', 'a') as f:
+               writer = csv.writer(f, lineterminator='\n')
+               writer.writerow(line)
             self.vel.linear.x = 0.2
             self.vel.angular.z = target_action
             self.nav_pub.publish(self.vel)
