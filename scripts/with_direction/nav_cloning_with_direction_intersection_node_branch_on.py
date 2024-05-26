@@ -9,7 +9,7 @@ import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 # from nav_cloning_with_direction_net import *
-from nav_cloning_with_direction_net_branch_test import *
+from nav_cloning_with_direction_net_branch_on import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
@@ -76,7 +76,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num =4000
+        self.episode_num =8000
         self.target_dataset = 8500
         self.train_flag = False
         self.padding_data = 3

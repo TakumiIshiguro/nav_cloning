@@ -165,56 +165,13 @@ class deep_learning:
         print("dataset_num:",len(dataset))
         return dataset,len(dataset),train_dataset
 
-    def loss_branch(self,dir_cmd,target,output):
-        #mask command branch [straight, left, straight]
-        command_mask = []
-        # command = dir_cmd.index(max(dir_cmd))
-        command = torch.argmax(dir_cmd,dim=1)
-        command_str = (command == 0)
-        command_str = torch.tensor(command_str,dtype=torch.float32,device=self.device)
-        command_mask.append(command_str)
-        command_left = (command == 1)
-        command_left = torch.tensor(command_left,dtype=torch.float32,device=self.device)
-        command_mask.append(command_left)
-        command_right = (command == 2)
-        command_right = torch.tensor(command_right,dtype=torch.float32,device=self.device)
-        command_mask.append(command_right)
-
-        loss_branch = []
-        loss_function = 0
-        for i in range(BRANCH):
-            loss_branch.append((output[i]-target)**2 *command_mask[i])
-            loss_function += loss_branch[i]
+    def loss_branch(self, dir_cmd, target, output):
+        command = torch.argmax(dir_cmd, dim=1)
+        command_mask = [torch.tensor((command == i), dtype=torch.float32, device=self.device) for i in range(BRANCH)]
+        loss_branch = [(output[i] - target) ** 2 * command_mask[i].unsqueeze(1) for i in range(BRANCH)]
+        loss_function = sum(loss_branch)
         #MSE
         return torch.sum(loss_function)/BRANCH
-        #return loss_branch
-
-    def trains(self,train_dataset):
-        #self.device = torch.device('cuda')
-        print(self.device)
-        # <Training mode>
-        self.net.train()
-        for epoch in range(EPOCH):
-            print(epoch)
-            for x_train, c_train, t_train in train_dataset:
-                x_train.to(self.device, non_blocking=True)
-                c_train.to(self.device, non_blocking=True)
-                t_train.to(self.device, non_blocking=True)
-            
-            # <use data augmentation>
-                #x_train = self.transform_color(x_train)
-            # <learning>
-                self.optimizer.zero_grad()
-                y_train = self.net(x_train, c_train)
-            # print("y_train=",y_train.shape,"t_train",t_train.shape)
-                loss = self.loss_branch(c_train,t_train,y_train)
-                #loss = self.criterion(y_train, t_train)
-                loss.backward()
-                self.loss_all = loss.item()
-                self.writer.add_scalar("loss", self.loss_all, self.count)
-                self.count += 1
-                self.optimizer.step()
-        return self.loss_all
 
     def act_and_trains(self, img, dir_cmd, target_angle):
         # <Training mode>
