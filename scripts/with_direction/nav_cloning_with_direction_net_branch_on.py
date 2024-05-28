@@ -37,6 +37,14 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(n_channel, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+
+        # Calculate the size after convolution
+        # Input size: (n_channel, 48, 64)
+        # Conv1: (32, (48-8)/4+1=11, (64-8)/4+1=15) -> (32, 11, 15)
+        # Conv2: (64, (11-3)/2+1=5, (15-3)/2+1=7) -> (64, 5, 7)
+        # Conv3: (64, (5-3)/1+1=3, (7-3)/1+1=5) -> (64, 3, 5)
+        # Flatten: 64*3*5 = 960
+
         self.fc4 = nn.Linear(960, 512)
         self.fc5 = nn.Linear(512, 512)
         self.fc6 = nn.Linear(512, 256)
@@ -73,6 +81,14 @@ class Net(nn.Module):
             self.relu
         )
     # # Concat layer (CNN output + Cmd data)
+    # # Concat layer (CNN output + Cmd data)
+    #     self.concat_layer = nn.Sequential(
+    #         self.fc6,
+    #         self.relu,
+    #         self.fc7
+    #     )
+          
+    # # Concat layer (CNN output + Cmd data)          
     #     self.concat_layer = nn.Sequential(
     #         self.fc6,
     #         self.relu,
@@ -91,12 +107,8 @@ class Net(nn.Module):
     def forward(self, x, c):
         img_out = self.cnn_layer(x)
         fc_out = self.fc_layer(img_out)
-        #x3 = torch.cat([fc_out, c], dim=1)
         output = torch.stack([out(fc_out) for out in self.branch],dim=0)
-        #x4 = self.concat_layer(x3)
-        print("output_tensor:",output.shape)
         return output
-
 
 class deep_learning:
     def __init__(self, n_channel=3, n_action=1):
@@ -130,40 +142,8 @@ class deep_learning:
         torch.backends.cudnn.benchmark = False
         self.writer = SummaryWriter(log_dir='/home/takumi/catkin_ws/src/nav_cloning/runs')
 
-        #self.writer = SummaryWriter(log_dir="/home/haru/nav_ws/src/nav_cloning/runs",comment="log_1")
-    def make_dataset(self,img, dir_cmd, target_angle):
-        if self.first_flag:
-            self.x_cat = torch.tensor(
-                img, dtype=torch.float32, device=self.device).unsqueeze(0)
-            self.x_cat = self.x_cat.permute(0, 3, 1, 2)
-            self.c_cat = torch.tensor(
-                dir_cmd, dtype=torch.float32, device=self.device).unsqueeze(0)
-            self.t_cat = torch.tensor(
-                [target_angle], dtype=torch.float32, device=self.device).unsqueeze(0)
-            self.first_flag = False
-
-        # x= torch.tensor(self.transform(img),dtype=torch.float32, device=self.device).unsqueeze(0)
-        # <To tensor img(x),cmd(c),angle(t)>
-        x = torch.tensor(img, dtype=torch.float32,
-                         device=self.device).unsqueeze(0)
-        # <(Batch,H,W,Channel) -> (Batch ,Channel, H,W)>
-        x = x.permute(0, 3, 1, 2)
-        c = torch.tensor(dir_cmd, dtype=torch.float32,
-                         device=self.device).unsqueeze(0)
-        t = torch.tensor([target_angle], dtype=torch.float32,
-                         device=self.device).unsqueeze(0)
-        self.x_cat = torch.cat([self.x_cat, x], dim=0)
-        self.c_cat = torch.cat([self.c_cat, c], dim=0)
-        self.t_cat = torch.cat([self.t_cat, t], dim=0)
-
-        # <make dataset>
-        #print("train x =",x.shape,x.device,"train c =" ,c.shape,c.device,"tarain t = " ,t.shape,t.device)
-        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
-        # <dataloder>
-        train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
-            'cpu').manual_seed(0), shuffle=True)
-        print("dataset_num:",len(dataset))
-        return dataset,len(dataset),train_dataset
+        dummy_input = torch.randn(1, 3, 48, 64).to(self.device)
+        self.writer.add_graph(self.net, (dummy_input, torch.tensor([[0, 1, 0]]).to(self.device)))
 
     def loss_branch(self, dir_cmd, target, output):
         command = torch.argmax(dir_cmd, dim=1)
@@ -224,7 +204,8 @@ class deep_learning:
         loss.backward()
         self.loss_all = loss.item()
         self.optimizer.step()
-        # self.writer.add_scalar("loss",loss,self.count)
+        self.writer.add_scalar("Loss/train", loss.item(), self.count)
+        self.count += 1
 
         # <test>
         self.net.eval()
