@@ -80,21 +80,7 @@ class Net(nn.Module):
             self.fc5,
             self.relu
         )
-    # # Concat layer (CNN output + Cmd data)
-    # # Concat layer (CNN output + Cmd data)
-    #     self.concat_layer = nn.Sequential(
-    #         self.fc6,
-    #         self.relu,
-    #         self.fc7
-    #     )
-          
-    # # Concat layer (CNN output + Cmd data)          
-    #     self.concat_layer = nn.Sequential(
-    #         self.fc6,
-    #         self.relu,
-    #         self.fc7
-    #     )
-          
+    # Concat layer (CNN output + Cmd data)         
         self.branch = nn.ModuleList([
             nn.Sequential(
                 self.fc6,
@@ -103,11 +89,10 @@ class Net(nn.Module):
             )for i in range(BRANCH)
         ])
     # forward layer
-
     def forward(self, x, c):
         img_out = self.cnn_layer(x)
         fc_out = self.fc_layer(img_out)
-        output = torch.stack([out(fc_out) for out in self.branch],dim=0)
+        output = torch.stack([out(fc_out) for out in self.branch],dim=1)
         return output
 
 class deep_learning:
@@ -143,12 +128,17 @@ class deep_learning:
         self.writer = SummaryWriter(log_dir='/home/takumi/catkin_ws/src/nav_cloning/runs')
 
         dummy_input = torch.randn(1, 3, 48, 64).to(self.device)
-        self.writer.add_graph(self.net, (dummy_input, torch.tensor([[0, 1, 0]]).to(self.device)))
+        cmd_dirs = [torch.tensor([[1, 0, 0]]).to(self.device),
+                    torch.tensor([[0, 1, 0]]).to(self.device),
+                    torch.tensor([[0, 0, 1]]).to(self.device)]
+        
+        for cmd_dir in cmd_dirs:
+            self.writer.add_graph(self.net, (dummy_input, cmd_dir))
 
     def loss_branch(self, dir_cmd, target, output):
         command = torch.argmax(dir_cmd, dim=1)
-        command_mask = [torch.tensor((command == i), dtype=torch.float32, device=self.device) for i in range(BRANCH)]
-        loss_branch = [(output[i] - target) ** 2 * command_mask[i].unsqueeze(1) for i in range(BRANCH)]
+        command_mask = [(command == i).float().to(self.device) for i in range(BRANCH)]
+        loss_branch = [(output[:, i] - target) ** 2 * command_mask[i].unsqueeze(1) for i in range(BRANCH)]
         loss_function = sum(loss_branch)
         #MSE
         return torch.sum(loss_function)/BRANCH
@@ -200,35 +190,40 @@ class deep_learning:
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
         # print("y_train=",y_train.shape,"t_train",t_train.shape)
-        loss = self.loss_branch(c_train,t_train,y_train)
+        loss = self.loss_branch(c_train, t_train, y_train)
         loss.backward()
         self.loss_all = loss.item()
         self.optimizer.step()
         self.writer.add_scalar("Loss/train", loss.item(), self.count)
-        self.count += 1
+
+        # デバッグ用に y_train の形状を確認する
+        print(f"y_train shape: {y_train.shape}")
+
+    # インデックスの調整
+        for i in range(y_train.size(1)):
+            self.writer.add_scalar(f"Branch_{i}/output", y_train[:, i].mean().item(), self.count)   
+            self.count += 1
 
         # <test>
         self.net.eval()
         action_value_training = self.net(x, c)
-        selected_action_value = action_value_training[torch.argmax(c, dim=1)]
+        command = torch.argmax(c, dim=1).item()
+        selected_action_value = action_value_training[0, command, :]
         return selected_action_value.item(), self.loss_all
 
     def act(self, img, dir_cmd):
         self.net.eval()
         # <make img(x_test_ten),cmd(c_test)>
-        # x_test_ten = torch.tensor(self.transform(img),dtype=torch.float32, device=self.device).unsqueeze(0)
         x_test_ten = torch.tensor(
             img, dtype=torch.float32, device=self.device).unsqueeze(0)
         x_test_ten = x_test_ten.permute(0, 3, 1, 2)
         c_test = torch.tensor(dir_cmd, dtype=torch.float32,
                               device=self.device).unsqueeze(0)
-        # print(x_test_ten.shape,x_test_ten.device,c_test.shape,c_test.device)
         # <test phase>
         action_value_test = self.net(x_test_ten, c_test)
-        #print("action_act tensor:",action_value_test.shape)
-        action_value_test = action_value_test[torch.argmax(c_test)]
-        print("act = " ,action_value_test.item())
-        return action_value_test.item()
+        command = torch.argmax(c_test, dim=1).item()
+        selected_action_value_test = action_value_test[0, command, :]
+        return selected_action_value_test.item()
 
     def result(self):
         accuracy = self.accuracy
