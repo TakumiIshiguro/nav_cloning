@@ -92,8 +92,10 @@ class Net(nn.Module):
     def forward(self, x, c):
         img_out = self.cnn_layer(x)
         fc_out = self.fc_layer(img_out)
-        output = torch.stack([out(fc_out) for out in self.branch],dim=1)
-        return output
+        outputs = torch.stack([branch(fc_out) for branch in self.branch], dim=0)
+        cmd_index = torch.argmax(c, dim=1).unsqueeze(0).expand(outputs.size(1), -1).permute(1, 0)
+        selected_outputs = torch.gather(outputs, 0, cmd_index.unsqueeze(-1).expand(-1, -1, outputs.size(2))).squeeze(0)
+        return selected_outputs
 
 class deep_learning:
     def __init__(self, n_channel=3, n_action=1):
@@ -137,11 +139,9 @@ class deep_learning:
 
     def loss_branch(self, dir_cmd, target, output):
         command = torch.argmax(dir_cmd, dim=1)
-        command_mask = [(command == i).float().to(self.device) for i in range(BRANCH)]
-        loss_branch = [(output[:, i] - target) ** 2 * command_mask[i].unsqueeze(1) for i in range(BRANCH)]
-        loss_function = sum(loss_branch)
-        #MSE
-        return torch.sum(loss_function)/BRANCH
+        loss_branch = [(output[:, i] - target) ** 2 for i in range(output.size(1))]
+        loss_function = sum(loss_branch) / len(loss_branch)
+        return torch.mean(loss_function)
 
     def act_and_trains(self, img, dir_cmd, target_angle):
         # <Training mode>
@@ -185,7 +185,10 @@ class deep_learning:
             break
         # <use data augmentation>
         # x_train = self.transform_color(x_train)
-
+        
+        # デバッグ用
+        print(f"c_train: {c_train}")
+        
         # <learning>
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
@@ -196,20 +199,17 @@ class deep_learning:
         self.optimizer.step()
         self.writer.add_scalar("Loss/train", loss.item(), self.count)
 
-        # デバッグ用に y_train の形状を確認する
-        print(f"y_train shape: {y_train.shape}")
+        
 
     # インデックスの調整
-        for i in range(y_train.size(1)):
-            self.writer.add_scalar(f"Branch_{i}/output", y_train[:, i].mean().item(), self.count)   
-            self.count += 1
+        # for i in range(y_train.size(1)):
+        #     self.writer.add_scalar(f"Branch_{i}/output", y_train[:, i].mean().item(), self.count)   
+        #     self.count += 1
 
         # <test>
         self.net.eval()
         action_value_training = self.net(x, c)
-        command = torch.argmax(c, dim=1).item()
-        selected_action_value = action_value_training[0, command, :]
-        return selected_action_value.item(), self.loss_all
+        return action_value_training.item(), self.loss_all
 
     def act(self, img, dir_cmd):
         self.net.eval()
@@ -221,9 +221,7 @@ class deep_learning:
                               device=self.device).unsqueeze(0)
         # <test phase>
         action_value_test = self.net(x_test_ten, c_test)
-        command = torch.argmax(c_test, dim=1).item()
-        selected_action_value_test = action_value_test[0, command, :]
-        return selected_action_value_test.item()
+        return action_value_test.item()
 
     def result(self):
         accuracy = self.accuracy
