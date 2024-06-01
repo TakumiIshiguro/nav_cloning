@@ -24,7 +24,7 @@ from yaml import load
 
 
 # HYPER PARAM
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 MAX_DATA = 10000
 EPOCH =20
 BRANCH = 3
@@ -93,8 +93,8 @@ class Net(nn.Module):
         img_out = self.cnn_layer(x)
         fc_out = self.fc_layer(img_out)
         outputs = torch.stack([branch(fc_out) for branch in self.branch], dim=0)
-        cmd_index = torch.argmax(c, dim=1).unsqueeze(0).expand(outputs.size(1), -1).permute(1, 0)
-        selected_outputs = torch.gather(outputs, 0, cmd_index.unsqueeze(-1).expand(-1, -1, outputs.size(2))).squeeze(0)
+        cmd_index = torch.argmax(c, dim=1)
+        selected_outputs = outputs[cmd_index, range(outputs.size(1))]
         return selected_outputs
 
 class deep_learning:
@@ -164,6 +164,8 @@ class deep_learning:
         x = x.permute(0, 3, 1, 2)
         c = torch.tensor(dir_cmd, dtype=torch.float32,
                          device=self.device).unsqueeze(0)
+        # デバッグ用
+        # print(f"c: {c}")
         t = torch.tensor([target_angle], dtype=torch.float32,
                          device=self.device).unsqueeze(0)
         self.x_cat = torch.cat([self.x_cat, x], dim=0)
@@ -186,8 +188,7 @@ class deep_learning:
         # <use data augmentation>
         # x_train = self.transform_color(x_train)
         
-        # デバッグ用
-        print(f"c_train: {c_train}")
+        
         
         # <learning>
         self.optimizer.zero_grad()
