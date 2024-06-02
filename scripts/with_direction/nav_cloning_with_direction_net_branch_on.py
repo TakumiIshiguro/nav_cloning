@@ -187,9 +187,7 @@ class deep_learning:
             break
         # <use data augmentation>
         # x_train = self.transform_color(x_train)
-        
-        
-        
+            
         # <learning>
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
@@ -210,7 +208,7 @@ class deep_learning:
         # <test>
         self.net.eval()
         action_value_training = self.net(x, c)
-        return action_value_training.item(), self.loss_all
+        return action_value_training[0][0].item(), self.loss_all
 
     def act(self, img, dir_cmd):
         self.net.eval()
@@ -222,7 +220,7 @@ class deep_learning:
                               device=self.device).unsqueeze(0)
         # <test phase>
         action_value_test = self.net(x_test_ten, c_test)
-        return action_value_test.item()
+        return action_value_test[0][0].item()
 
     def result(self):
         accuracy = self.accuracy

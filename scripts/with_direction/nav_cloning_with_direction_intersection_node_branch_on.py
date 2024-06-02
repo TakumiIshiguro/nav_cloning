@@ -76,7 +76,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num =8000
+        self.episode_num =10000
         self.target_dataset = 8500
         self.train_flag = False
         self.padding_data = 3
