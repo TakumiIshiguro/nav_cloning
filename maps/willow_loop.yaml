@@ -20,14 +20,14 @@ waypoints:
         z: -0.000236511
         function: run_left_corridor
     - point:
-        x: 9.0442
-        y: -9.24562
-        z: -0.000238418
+        x: 8.62998
+        y: -9.42225
+        z: -0.000234603
         function: run
     - point:
-        x: 3.23704
-        y: -7.12015
-        z: -0.00024414
+        x: 3.75935
+        y: -6.98692
+        z: -0.000243186
         function: run
     - point:
         x: -0.714592
