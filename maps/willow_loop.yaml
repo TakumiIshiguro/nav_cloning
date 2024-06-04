@@ -40,12 +40,12 @@ waypoints:
         z: -0.000245094
         function: run
     - point:
-        x: -9.47759
-        y: -8.63338
-        z: -0.000245094
+        x: -9.56124
+        y: -8.66664
+        z: -0.000247001
         function: run_left_corridor
     - point:
-        x: -9.61835
-        y: -14.1853
-        z: 0
+        x: -9.55882
+        y: -14.1888
+        z: -1.90735e-06
         function: run
