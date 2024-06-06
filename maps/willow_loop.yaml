@@ -1,12 +1,12 @@
 waypoints:
     - point:
-        x: -6.16011
-        y: -16.0166
+        x: -1.27968
+        y: -16.0882
         z: -0.000250815
-        function: run_left_corridor
+        function: run
     - point:
-        x: 2.97305
-        y: -16.0811
+        x: 6.68259
+        y: -16.2672
         z: -0.000251769
         function: run
     - point:
@@ -49,3 +49,8 @@ waypoints:
         y: -14.1888
         z: -1.90735e-06
         function: run
+    - point:
+        x: -6.314
+        y: -16.0414
+        z: -2.86102e-06
+        function: run_left_corridor
