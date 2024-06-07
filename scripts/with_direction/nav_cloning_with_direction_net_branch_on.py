@@ -37,14 +37,6 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(n_channel, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-
-        # Calculate the size after convolution
-        # Input size: (n_channel, 48, 64)
-        # Conv1: (32, (48-8)/4+1=11, (64-8)/4+1=15) -> (32, 11, 15)
-        # Conv2: (64, (11-3)/2+1=5, (15-3)/2+1=7) -> (64, 5, 7)
-        # Conv3: (64, (5-3)/1+1=3, (7-3)/1+1=5) -> (64, 3, 5)
-        # Flatten: 64*3*5 = 960
-
         self.fc4 = nn.Linear(960, 512)
         self.fc5 = nn.Linear(512, 512)
         self.fc6 = nn.Linear(512, 256)
@@ -90,12 +82,19 @@ class Net(nn.Module):
         ])
     # forward layer
     def forward(self, x, c):
-        img_out = self.cnn_layer(x)
-        fc_out = self.fc_layer(img_out)
-        outputs = torch.stack([branch(fc_out) for branch in self.branch], dim=0)
+        x = self.cnn_layer(x)
+        x = self.fc_layer(x)
         cmd_index = torch.argmax(c, dim=1)
-        selected_outputs = outputs[cmd_index, range(outputs.size(1))]
-        return selected_outputs
+
+        output_str = self.branch[0](x)
+        output_left = self.branch[1](x)
+        output_right = self.branch[2](x)
+        
+        output = output_str
+        output = torch.where(cmd_index == 1, output_left, output)
+        output = torch.where(cmd_index == 2, output_right, output)
+
+        return output
 
 class deep_learning:
     def __init__(self, n_channel=3, n_action=1):
@@ -127,21 +126,21 @@ class deep_learning:
         self.transform = transforms.Compose([transforms.ToTensor()])
         self.first_flag = True
         torch.backends.cudnn.benchmark = False
-        self.writer = SummaryWriter(log_dir='/home/takumi/catkin_ws/src/nav_cloning/runs')
+        # self.writer = SummaryWriter(log_dir='/home/takumi/catkin_ws/src/nav_cloning/runs')
 
-        dummy_input = torch.randn(1, 3, 48, 64).to(self.device)
-        cmd_dirs = [torch.tensor([[1, 0, 0]]).to(self.device),
-                    torch.tensor([[0, 1, 0]]).to(self.device),
-                    torch.tensor([[0, 0, 1]]).to(self.device)]
+        # dummy_input = torch.randn(1, 3, 48, 64).to(self.device)
+        # cmd_dirs = [torch.tensor([[1, 0, 0]]).to(self.device),
+        #             torch.tensor([[0, 1, 0]]).to(self.device),
+        #             torch.tensor([[0, 0, 1]]).to(self.device)]
         
-        for cmd_dir in cmd_dirs:
-            self.writer.add_graph(self.net, (dummy_input, cmd_dir))
+        # for cmd_dir in cmd_dirs:
+        #     self.writer.add_graph(self.net, (dummy_input, cmd_dir))
 
-    def loss_branch(self, dir_cmd, target, output):
-        command = torch.argmax(dir_cmd, dim=1)
-        loss_branch = [(output[:, i] - target) ** 2 for i in range(output.size(1))]
-        loss_function = sum(loss_branch) / len(loss_branch)
-        return torch.mean(loss_function)
+    # def loss_branch(self, dir_cmd, target, output):
+    #     command = torch.argmax(dir_cmd, dim=1)
+    #     selected_output = output[range(output.size(0)), command]
+    #     loss = self.criterion(selected_output, target)
+    #     return loss
 
     def act_and_trains(self, img, dir_cmd, target_angle):
         # <Training mode>
@@ -192,11 +191,11 @@ class deep_learning:
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
         # print("y_train=",y_train.shape,"t_train",t_train.shape)
-        loss = self.loss_branch(c_train, t_train, y_train)
+        # loss = self.loss_branch(c_train, t_train, y_train)
+        loss = self.criterion(y_train, t_train)
         loss.backward()
-        self.loss_all = loss.item()
         self.optimizer.step()
-        self.writer.add_scalar("Loss/train", loss.item(), self.count)
+        # self.writer.add_scalar("Loss/train", loss.item(), self.count)
 
         
 
@@ -208,7 +207,7 @@ class deep_learning:
         # <test>
         self.net.eval()
         action_value_training = self.net(x, c)
-        return action_value_training[0][0].item(), self.loss_all
+        return action_value_training[0][0].item(), loss.item()
 
     def act(self, img, dir_cmd):
         self.net.eval()
