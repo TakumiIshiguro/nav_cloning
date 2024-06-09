@@ -83,17 +83,24 @@ class Net(nn.Module):
     # forward layer
     def forward(self, x, c):
         x = self.cnn_layer(x)
+        # print(f"Shape after CNN layers: {x.shape}")
         x = self.fc_layer(x)
+        # print(f"Shape after FC layers: {x.shape}")
+    
         cmd_index = torch.argmax(c, dim=1)
-
         output_str = self.branch[0](x)
         output_left = self.branch[1](x)
         output_right = self.branch[2](x)
-        
-        output = output_str
-        output = torch.where(cmd_index == 1, output_left, output)
-        output = torch.where(cmd_index == 2, output_right, output)
+    
+        # print(f"Shapes of branches: {output_str.shape}, {output_left.shape}, {output_right.shape}")
+    
+        output = output_str.clone()
+        output[cmd_index == 1] = output_left[cmd_index == 1]
+        output[cmd_index == 2] = output_right[cmd_index == 2]
 
+
+    
+        # print(f"Final output shape: {output.shape}")
         return output
 
 class deep_learning:
@@ -163,8 +170,7 @@ class deep_learning:
         x = x.permute(0, 3, 1, 2)
         c = torch.tensor(dir_cmd, dtype=torch.float32,
                          device=self.device).unsqueeze(0)
-        # デバッグ用
-        # print(f"c: {c}")
+       
         t = torch.tensor([target_angle], dtype=torch.float32,
                          device=self.device).unsqueeze(0)
         self.x_cat = torch.cat([self.x_cat, x], dim=0)
@@ -184,13 +190,16 @@ class deep_learning:
             c_train.to(self.device, non_blocking=True)
             t_train.to(self.device, non_blocking=True)
             break
+
+        # デバッグ用
+        print(f"c_train: {c_train}")
         # <use data augmentation>
         # x_train = self.transform_color(x_train)
             
         # <learning>
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
-        # print("y_train=",y_train.shape,"t_train",t_train.shape)
+        print("y_train=",y_train.shape,"t_train",t_train.shape)
         # loss = self.loss_branch(c_train, t_train, y_train)
         loss = self.criterion(y_train, t_train)
         loss.backward()
