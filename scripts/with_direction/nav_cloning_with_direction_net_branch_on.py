@@ -21,7 +21,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from yaml import load
-
+from torchinfo import summary
 
 # HYPER PARAM
 BATCH_SIZE = 8
@@ -135,19 +135,32 @@ class deep_learning:
         torch.backends.cudnn.benchmark = False
         # self.writer = SummaryWriter(log_dir='/home/takumi/catkin_ws/src/nav_cloning/runs')
 
-        # dummy_input = torch.randn(1, 3, 48, 64).to(self.device)
-        # cmd_dirs = [torch.tensor([[1, 0, 0]]).to(self.device),
-        #             torch.tensor([[0, 1, 0]]).to(self.device),
-        #             torch.tensor([[0, 0, 1]]).to(self.device)]
-        
-        # for cmd_dir in cmd_dirs:
-        #     self.writer.add_graph(self.net, (dummy_input, cmd_dir))
+       
+        # dummy_output = self.net(dummy_input, dummy_cmd)
+        # graph = make_dot(dummy_output, params=dict(self.net.named_parameters()))
+        # graph.render("model_graph", format="png")
 
-    # def loss_branch(self, dir_cmd, target, output):
-    #     command = torch.argmax(dir_cmd, dim=1)
-    #     selected_output = output[range(output.size(0)), command]
-    #     loss = self.criterion(selected_output, target)
-    #     return loss
+
+    def loss_branch(self, dir_cmd, target_angle, output):
+        # コマンドマスクを初期化
+        command_mask = []
+        # 最大の値を持つ方向を特定
+        command = torch.argmax(dir_cmd, dim=1)
+    
+        # 各方向に対してマスクを作成
+        command_mask.append((command == 0).float().to(self.device))  # 直進
+        command_mask.append((command == 1).float().to(self.device))  # 左
+        command_mask.append((command == 2).float().to(self.device))  # 右
+    
+        loss_function = 0
+        for i in range(BRANCH):
+        # 各ブランチに対して損失を計算
+            loss = ((output[i] - target_angle) ** 2 * command_mask[i])
+            loss_function += loss
+    
+        # 平均二乗誤差を計算して返す
+        return torch.sum(loss_function) / BRANCH
+
 
     def act_and_trains(self, img, dir_cmd, target_angle):
         # <Training mode>
@@ -192,16 +205,16 @@ class deep_learning:
             break
 
         # デバッグ用
-        print(f"c_train: {c_train}")
+        # print(f"c_train: {c_train}")
         # <use data augmentation>
         # x_train = self.transform_color(x_train)
             
         # <learning>
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
-        print("y_train=",y_train.shape,"t_train",t_train.shape)
-        # loss = self.loss_branch(c_train, t_train, y_train)
-        loss = self.criterion(y_train, t_train)
+        # print("y_train=",y_train.shape,"t_train",t_train.shape)
+        loss = self.loss_branch(c_train, t_train, y_train)
+        # loss = self.criterion(y_train, t_train)
         loss.backward()
         self.optimizer.step()
         # self.writer.add_scalar("Loss/train", loss.item(), self.count)
@@ -212,7 +225,9 @@ class deep_learning:
         # for i in range(y_train.size(1)):
         #     self.writer.add_scalar(f"Branch_{i}/output", y_train[:, i].mean().item(), self.count)   
         #     self.count += 1
-
+        dummy_input = torch.randn(1, 3, 48, 64).to(self.device)
+        dummy_cmd = torch.tensor([[1, 0, 0]]).to(self.device)
+        summary(self.net, input_data=(dummy_input, dummy_cmd))
         # <test>
         self.net.eval()
         action_value_training = self.net(x, c)
