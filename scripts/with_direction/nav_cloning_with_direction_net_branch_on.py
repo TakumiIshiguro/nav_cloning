@@ -77,7 +77,7 @@ class Net(nn.Module):
             nn.Sequential(
                 self.fc6,
                 self.relu,
-                self.fc7
+                nn.Linear(256, n_out)
             )for i in range(BRANCH)
         ])
     # forward layer
@@ -93,14 +93,23 @@ class Net(nn.Module):
         output_right = self.branch[2](x)
     
         # print(f"Shapes of branches: {output_str.shape}, {output_left.shape}, {output_right.shape}")
-    
+        print(f"output_str: {output_str}, output_left: {output_left}, output_right: {output_right}")
         output = output_str.clone()
         output[cmd_index == 1] = output_left[cmd_index == 1]
         output[cmd_index == 2] = output_right[cmd_index == 2]
-
-
-    
-        # print(f"Final output shape: {output.shape}")
+    # def forward(self, x, c):
+    #     x = self.cnn_layer(x)
+    #     x = self.fc_layer(x)
+        
+    #     cmd_index = torch.argmax(c, dim=1)
+        
+    #     outputs = [branch(x) for branch in self.branch]
+    #     output = torch.zeros_like(outputs[0])
+        
+    #     for i in range(len(outputs)):
+    #         output[cmd_index == i] = outputs[i][cmd_index == i]
+        
+    #     print(f"outputs: {[output.item() for output in outputs]}")
         return output
 
 class deep_learning:
@@ -142,25 +151,16 @@ class deep_learning:
 
 
     def loss_branch(self, dir_cmd, target_angle, output):
-        # コマンドマスクを初期化
-        command_mask = []
-        # 最大の値を持つ方向を特定
-        command = torch.argmax(dir_cmd, dim=1)
-    
-        # 各方向に対してマスクを作成
-        command_mask.append((command == 0).float().to(self.device))  # 直進
-        command_mask.append((command == 1).float().to(self.device))  # 左
-        command_mask.append((command == 2).float().to(self.device))  # 右
-    
-        loss_function = 0
-        for i in range(BRANCH):
-        # 各ブランチに対して損失を計算
-            loss = ((output[i] - target_angle) ** 2 * command_mask[i])
-            loss_function += loss
-    
-        # 平均二乗誤差を計算して返す
-        return torch.sum(loss_function) / BRANCH
+        command = torch.argmax(dir_cmd, dim=1).item() 
+        if command == 0:
+            loss = ((output - target_angle) ** 2)
+        elif command == 1:
+            loss = ((output - target_angle) ** 2)
+        elif command == 2:
+            loss = ((output - target_angle) ** 2)
 
+        # 平均二乗誤差を計算して返す
+        return loss
 
     def act_and_trains(self, img, dir_cmd, target_angle):
         # <Training mode>
@@ -213,8 +213,8 @@ class deep_learning:
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
         # print("y_train=",y_train.shape,"t_train",t_train.shape)
-        loss = self.loss_branch(c_train, t_train, y_train)
-        # loss = self.criterion(y_train, t_train)
+        # loss = self.loss_branch(c_train, t_train, y_train)
+        loss = self.criterion(y_train, t_train)
         loss.backward()
         self.optimizer.step()
         # self.writer.add_scalar("Loss/train", loss.item(), self.count)
@@ -227,7 +227,7 @@ class deep_learning:
         #     self.count += 1
         dummy_input = torch.randn(1, 3, 48, 64).to(self.device)
         dummy_cmd = torch.tensor([[1, 0, 0]]).to(self.device)
-        summary(self.net, input_data=(dummy_input, dummy_cmd))
+        # summary(self.net, input_data=(dummy_input, dummy_cmd))
         # <test>
         self.net.eval()
         action_value_training = self.net(x, c)
