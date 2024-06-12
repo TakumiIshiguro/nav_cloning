@@ -82,41 +82,19 @@ class Net(nn.Module):
         ])
     # forward layer
     def forward(self, x, c):
-        x = self.cnn_layer(x)
-        # print(f"Shape after CNN layers: {x.shape}")
-        x = self.fc_layer(x)
-        # print(f"Shape after FC layers: {x.shape}")
-    
-        cmd_index = torch.argmax(c, dim=1)
-        output_str = self.branch[0](x)
-        output_left = self.branch[1](x)
-        output_right = self.branch[2](x)
-    
-        # print(f"Shapes of branches: {output_str.shape}, {output_left.shape}, {output_right.shape}")
-        print(f"output_str: {output_str}, output_left: {output_left}, output_right: {output_right}")
-        output = output_str.clone()
-        output[cmd_index == 1] = output_left[cmd_index == 1]
-        output[cmd_index == 2] = output_right[cmd_index == 2]
-    # def forward(self, x, c):
-    #     x = self.cnn_layer(x)
-    #     x = self.fc_layer(x)
-        
-    #     cmd_index = torch.argmax(c, dim=1)
-        
-    #     outputs = [branch(x) for branch in self.branch]
-    #     output = torch.zeros_like(outputs[0])
-        
-    #     for i in range(len(outputs)):
-    #         output[cmd_index == i] = outputs[i][cmd_index == i]
-        
-    #     print(f"outputs: {[output.item() for output in outputs]}")
+        img_out = self.cnn_layer(x)
+        fc_out = self.fc_layer(img_out)
+        #x3 = torch.cat([fc_out, c], dim=1)
+        output = torch.stack([out(fc_out) for out in self.branch],dim=0)
+        #x4 = self.concat_layer(x3)
+        print("output_tensor:",output)
         return output
 
 class deep_learning:
     def __init__(self, n_channel=3, n_action=1):
         # tensor device choiece
         self.device = torch.device(
-            'cuda' if torch.cuda.is_available() else 'cpu')
+            'cuda:0' if torch.cuda.is_available() else 'cpu')
         torch.manual_seed(0)
         self.net = Net(n_channel, n_action)
         self.net.to(self.device)
@@ -150,17 +128,29 @@ class deep_learning:
         # graph.render("model_graph", format="png")
 
 
-    def loss_branch(self, dir_cmd, target_angle, output):
-        command = torch.argmax(dir_cmd, dim=1).item() 
-        if command == 0:
-            loss = ((output - target_angle) ** 2)
-        elif command == 1:
-            loss = ((output - target_angle) ** 2)
-        elif command == 2:
-            loss = ((output - target_angle) ** 2)
+    def loss_branch(self, dir_cmd, target,output):
+        #mask command branch [straight, left, straight]
+        command_mask = []
+        # command = dir_cmd.index(max(dir_cmd))
+        command = torch.argmax(dir_cmd,dim=1)
+        command_str = (command == 0)
+        command_str = torch.tensor(command_str,dtype=torch.float32,device=self.device)
+        command_mask.append(command_str)
+        command_left = (command == 1)
+        command_left = torch.tensor(command_left,dtype=torch.float32,device=self.device)
+        command_mask.append(command_left)
+        command_right = (command == 2)
+        command_right = torch.tensor(command_right,dtype=torch.float32,device=self.device)
+        command_mask.append(command_right)
 
-        # 平均二乗誤差を計算して返す
-        return loss
+        loss_branch = []
+        loss_function = 0
+        for i in range(BRANCH):
+            loss_branch.append((output[i]-target)**2 *command_mask[i])
+            # print("loss_branch:" ,loss_branch[i])
+            loss_function += loss_branch[i]
+        #MSE
+        return torch.sum(loss_function)/BRANCH
 
     def act_and_trains(self, img, dir_cmd, target_angle):
         # <Training mode>
@@ -213,8 +203,8 @@ class deep_learning:
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
         # print("y_train=",y_train.shape,"t_train",t_train.shape)
-        # loss = self.loss_branch(c_train, t_train, y_train)
-        loss = self.criterion(y_train, t_train)
+        loss = self.loss_branch(c_train, t_train, y_train)
+        # loss = self.criterion(y_train, t_train)
         loss.backward()
         self.optimizer.step()
         # self.writer.add_scalar("Loss/train", loss.item(), self.count)
@@ -231,6 +221,7 @@ class deep_learning:
         # <test>
         self.net.eval()
         action_value_training = self.net(x, c)
+        action_value_training = action_value_training[torch.argmax(c)]
         return action_value_training[0][0].item(), loss.item()
 
     def act(self, img, dir_cmd):
@@ -243,6 +234,7 @@ class deep_learning:
                               device=self.device).unsqueeze(0)
         # <test phase>
         action_value_test = self.net(x_test_ten, c_test)
+        action_value_test = action_value_test[torch.argmax(c_test)]
         return action_value_test[0][0].item()
 
     def result(self):
