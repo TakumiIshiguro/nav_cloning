@@ -8,8 +8,8 @@ import rospy
 import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-# from nav_cloning_with_direction_net import *
-from nav_cloning_with_direction_net_v2 import *
+from nav_cloning_with_direction_net import *
+# from nav_cloning_with_direction_net_v2 import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
@@ -65,14 +65,14 @@ class nav_cloning_node:
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/'
         # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/v2_net/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
-        self.load_path= '/home/takumi/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/20240416_05:36:31/model_gpu.pt'
+        # self.load_path= '/home/takumi/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/20240416_05:36:31/model_gpu.pt'
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num =120000
+        self.episode_num = 4000
         print(self.episode_num)
         #self.cmd_dir_data = [0, 0, 0]
         self.start_time_s = rospy.get_time()
@@ -177,9 +177,9 @@ class nav_cloning_node:
         
         if self.episode == self.episode_num:
             self.learning = False
-            self.dl.save(self.save_path)
+            # self.dl.save(self.save_path)
             #self.dl.load(self.load_path)
-        if self.episode == self.episode_num+20000:
+        if self.episode == self.episode_num+2000:
             os.system('killall roslaunch')
             sys.exit()
 
@@ -244,8 +244,6 @@ class nav_cloning_node:
                         action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, target_action + 0.2)
                 
                 # if distance > 0.15 or angle_error > 0.3:
-                #     self.select_dl = False
-                # if distance > 0.1:
                 #     self.select_dl = False
                 if distance > 0.1:
                     self.select_dl = False

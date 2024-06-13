@@ -84,6 +84,7 @@ class Net(nn.Module):
         x2 = self.fc_layer(x1)
         x3 = torch.cat([x2, c], dim=1)
         x4 = self.concat_layer(x3)
+        print("output_tensor:",x4.shape)
         return x4
 
 
@@ -162,11 +163,11 @@ class deep_learning:
             t_train.to(self.device, non_blocking=True)
             break
         # <use data augmentation>
-        x_train = self.transform_color(x_train)
+        # x_train = self.transform_color(x_train)
         # <learning>
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
-        # print("y_train=",y_train.shape,"t_train",t_train.shape)
+        print("y_train=",y_train.shape,"t_train",t_train.shape)
         loss = self.criterion(y_train, t_train)
         loss.backward()
         self.optimizer.step()
@@ -184,10 +185,10 @@ class deep_learning:
         # self.writer.close()
         # self.writer.flush()
         # <reset dataset>
-        if self.x_cat.size()[0] > MAX_DATA:
-            self.x_cat = self.x_cat[1:]
-            self.c_cat = self.c_cat[1:]
-            self.t_cat = self.t_cat[1:]
+        # if self.x_cat.size()[0] > MAX_DATA:
+        #     self.x_cat = self.x_cat[1:]
+        #     self.c_cat = self.c_cat[1:]
+        #     self.t_cat = self.t_cat[1:]
             # self.x_cat = torch.empty(1, 3, 48, 64).to(self.device)
             # self.c_cat = torch.empty(1, 4).to(self.device)
             # self.t_cat = torch.empty(1, 1).to(self.device)
