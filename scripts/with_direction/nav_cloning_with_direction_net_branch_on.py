@@ -75,7 +75,7 @@ class Net(nn.Module):
     # Concat layer (CNN output + Cmd data)         
         self.branch = nn.ModuleList([
             nn.Sequential(
-                self.fc6,
+                nn.Linear(512, 256),
                 self.relu,
                 nn.Linear(256, n_out)
             )for i in range(BRANCH)
@@ -128,27 +128,22 @@ class deep_learning:
         # graph.render("model_graph", format="png")
 
 
-    def loss_branch(self, dir_cmd, target,output):
+    def loss_branch(self, dir_cmd, target, output):
         #mask command branch [straight, left, straight]
         command_mask = []
         # command = dir_cmd.index(max(dir_cmd))
         command = torch.argmax(dir_cmd,dim=1)
-        command_str = (command == 0)
-        command_str = torch.tensor(command_str,dtype=torch.float32,device=self.device)
-        command_mask.append(command_str)
-        command_left = (command == 1)
-        command_left = torch.tensor(command_left,dtype=torch.float32,device=self.device)
-        command_mask.append(command_left)
-        command_right = (command == 2)
-        command_right = torch.tensor(command_right,dtype=torch.float32,device=self.device)
-        command_mask.append(command_right)
+        command_mask.append((command == 0).clone().detach().to(torch.float32).to(self.device))
+        command_mask.append((command == 1).clone().detach().to(torch.float32).to(self.device))
+        command_mask.append((command == 2).clone().detach().to(torch.float32).to(self.device))
 
         loss_branch = []
         loss_function = 0
         for i in range(BRANCH):
-            loss_branch.append((output[i]-target)**2 *command_mask[i])
-            # print("loss_branch:" ,loss_branch[i])
-            loss_function += loss_branch[i]
+            loss = (output[i] - target) ** 2 * command_mask[i]
+            loss_branch.append(loss)
+            print("loss_branch:", loss_branch[i])
+            loss_function += loss
         #MSE
         return torch.sum(loss_function)/BRANCH
 
