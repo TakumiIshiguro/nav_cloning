@@ -8,7 +8,7 @@ import glob
 import os
 lists = []
 
-experiment = 'test'
+experiment = 'direction_6000_cross'
 
 for filename in sorted(glob.glob('/home/takumi/catkin_ws/src/nav_cloning/data/result_with_dir_selected_training/' + experiment + '/*/training.csv'), key=lambda f: os.stat(f).st_mtime, reverse=True):
 # for filename in sorted(glob.glob('/home/yuzuki/ws/master_model_evaluation_ws/src/nav_cloning/data/result_use_dl_output/*/training_all.csv'), key=lambda f: os.stat(f).st_mtime, reverse=True):
