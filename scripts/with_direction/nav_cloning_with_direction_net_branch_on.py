@@ -81,13 +81,37 @@ class Net(nn.Module):
             )for i in range(BRANCH)
         ])
     # forward layer
+    # def forward(self, x, c):
+    #     img_out = self.cnn_layer(x)
+    #     fc_out = self.fc_layer(img_out)
+    #     #x3 = torch.cat([fc_out, c], dim=1)
+    #     output = torch.stack([out(fc_out) for out in self.branch],dim=0)
+    #     #x4 = self.concat_layer(x3)
+    #     print("output_tensor:",output)
+    #     return output
+# コマンドに応じてbranchに入力するのを変える
     def forward(self, x, c):
-        img_out = self.cnn_layer(x)
-        fc_out = self.fc_layer(img_out)
-        #x3 = torch.cat([fc_out, c], dim=1)
-        output = torch.stack([out(fc_out) for out in self.branch],dim=0)
-        #x4 = self.concat_layer(x3)
-        print("output_tensor:",output)
+        img_out = self.cnn_layer(x) 
+        fc_out = self.fc_layer(img_out)  
+        batch_size = x.size(0)
+        print(batch_size)
+        output_str = torch.zeros(batch_size, 1, device=fc_out.device)
+        output_left = torch.zeros(batch_size, 1, device=fc_out.device)
+        output_right = torch.zeros(batch_size, 1, device=fc_out.device)
+
+        for i in range(batch_size):
+            if c[i].argmax().item() == 0:
+                fc_str = fc_out[i].unsqueeze(0)
+                output_str[i] = self.branch[0](fc_str)
+            elif c[i].argmax().item() == 1:
+                fc_left = fc_out[i].unsqueeze(0)
+                output_left[i] = self.branch[1](fc_left)
+            elif c[i].argmax().item() == 2:
+                fc_right = fc_out[i].unsqueeze(0)
+                output_right[i] = self.branch[2](fc_right)
+
+        output = torch.stack([output_str, output_left, output_right])
+        print(output)    
         return output
 
 class deep_learning:
@@ -136,14 +160,16 @@ class deep_learning:
         command_mask.append((command == 0).clone().detach().to(torch.float32).to(self.device))
         command_mask.append((command == 1).clone().detach().to(torch.float32).to(self.device))
         command_mask.append((command == 2).clone().detach().to(torch.float32).to(self.device))
-
+        # print(command_mask)
+        # print(command)
+        # print(output)
         loss_branch = []
         loss_function = 0
         for i in range(BRANCH):
             loss = (output[i] - target) ** 2 * command_mask[i]
             loss_branch.append(loss)
-            print("loss_branch:", loss_branch[i])
-            loss_function += loss
+            # print("loss_branch:", loss_branch[i])
+            loss_function += loss_branch[i]
         #MSE
         return torch.sum(loss_function)/BRANCH
 
@@ -217,7 +243,7 @@ class deep_learning:
         self.net.eval()
         action_value_training = self.net(x, c)
         action_value_training = action_value_training[torch.argmax(c)]
-        return action_value_training[0][0].item(), loss.item()
+        return action_value_training.item(), loss.item()
 
     def act(self, img, dir_cmd):
         self.net.eval()
@@ -230,7 +256,7 @@ class deep_learning:
         # <test phase>
         action_value_test = self.net(x_test_ten, c_test)
         action_value_test = action_value_test[torch.argmax(c_test)]
-        return action_value_test[0][0].item()
+        return action_value_test.item()
 
     def result(self):
         accuracy = self.accuracy
