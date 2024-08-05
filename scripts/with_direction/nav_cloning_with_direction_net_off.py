@@ -26,8 +26,8 @@ from yaml import load
 # HYPER PARAM
 BATCH_SIZE = 8
 MAX_DATA = 10000
-EPOCH =30
-PADDING_DATA = 3
+EPOCH = 5
+PADDING_DATA = 7 #3
 
 
 class Net(nn.Module):
@@ -102,9 +102,10 @@ class deep_learning:
             self.net.parameters(), eps=1e-2, weight_decay=5e-4)
         self.totensor = transforms.ToTensor()
         self.transform_color = transforms.ColorJitter(
-            brightness=0.5, contrast=0.5, saturation=0.5)
+            brightness=0.25, contrast=0.25, saturation=0.25)
         self.n_action = n_action
         self.count = 0
+        self.on_count = 0
         self.accuracy = 0
         self.loss_all =0.0
         self.results_train = {}
@@ -118,10 +119,10 @@ class deep_learning:
         self.transform = transforms.Compose([transforms.ToTensor()])
         self.first_flag = True
         torch.backends.cudnn.benchmark = False
-        self.writer = SummaryWriter(log_dir='/home/takumi/catkin_ws/src/nav_cloning/runs')
+        # self.writer = SummaryWriter(log_dir='/home/orne_beta/haruyama_ws/src/nav_cloning/runs')
 
         #self.writer = SummaryWriter(log_dir="/home/haru/nav_ws/src/nav_cloning/runs",comment="log_1")
-    def make_dataset(self,img, dir_cmd, target_angle):
+    def make_dataset(self,img, dir_cmd, target_angle):        
         if self.first_flag:
             self.x_cat = torch.tensor(
                 img, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -130,8 +131,17 @@ class deep_learning:
                 dir_cmd, dtype=torch.float32, device=self.device).unsqueeze(0)
             self.t_cat = torch.tensor(
                 [target_angle], dtype=torch.float32, device=self.device).unsqueeze(0)
+            # filename = "zihanki_migi"
+            # image_path = '/home/orne_beta/haruyama_ws/src/nav_cloning/data/dataset_with_dir_selected_training/pytorch/image/'+filename+'/image.pt'
+            # dir_path = '/home/orne_beta/haruyama_ws/src/nav_cloning/data/dataset_with_dir_selected_training/pytorch/dir/'+filename+'/dir.pt'
+            # vel_path = '/home/orne_beta/haruyama_ws/src/nav_cloning/data/dataset_with_dir_selected_training/pytorch/vel/'+filename+'/vel.pt'
+            # self.x_cat = torch.load(image_path)
+            # self.c_cat = torch.load(dir_path)
+            # self.t_cat = torch.load(vel_path)
+            # print("x_shape:",self.x_cat.shape)
+            # print("c_shape:",self.x_cat.shape)
+            # print("t_shape:",self.t_cat.shape)
             self.first_flag = False
-
         # x= torch.tensor(self.transform(img),dtype=torch.float32, device=self.device).unsqueeze(0)
         # <To tensor img(x),cmd(c),angle(t)>
         x = torch.tensor(img, dtype=torch.float32,
@@ -161,10 +171,19 @@ class deep_learning:
             'cpu').manual_seed(0), shuffle=True)
         print("dataset_num:",len(dataset))
         return dataset,len(dataset) ,train_dataset
-    # def load_dataset(self,dataset):
-    #     train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
-    #         'cpu').manual_seed(0), shuffle=True)
-    #     return train_dataset
+    
+    # def load_dataset(self,image_path,dir_path,vel_path):
+    #     x_tensor = torch.load(image_path)
+    #     c_tensor = torch.load(dir_path)
+    #     t_tensor = torch.load(vel_path)
+    #     # dataset = TensorDataset(x_tensor, c_tensor, t_tensor)
+    #     # train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
+    #     #     'cpu').manual_seed(0), shuffle=True)
+    #     print("load_image:",x_tensor.shape)
+    #     print("load_dir:",c_tensor.shape)
+    #     print("load_vel:",t_tensor.shape)
+    #     return x_tensor,c_tensor,t_tensor
+    
     def trains(self,train_dataset):
         #self.device = torch.device('cuda')
         print(self.device)
@@ -178,7 +197,7 @@ class deep_learning:
                 t_train.to(self.device, non_blocking=True)
             
             # <use data augmentation>
-                #x_train = self.transform_color(x_train)
+                x_train = self.transform_color(x_train)
             # <learning>
                 self.optimizer.zero_grad()
                 y_train = self.net(x_train, c_train)
@@ -190,7 +209,24 @@ class deep_learning:
                 self.writer.add_scalar("loss", self.loss_all, self.count)
                 self.count += 1
         return self.loss_all
-
+    def on_trains(self,img,dir_cmd,vel):
+        print("on_training:",self.on_count)
+        x_one = torch.tensor(
+            img, dtype=torch.float32, device=self.device).unsqueeze(0)
+        x_one= x_one.permute(0, 3, 1, 2)
+        c_one = torch.tensor(dir_cmd, dtype=torch.float32,
+                              device=self.device).unsqueeze(0)
+        t_one = torch.tensor(vel, dtype=torch.float32,
+                              device=self.device).unsqueeze(0)
+        self.optimizer.zero_grad()
+        y_train = self.net(x_one, c_one)
+        loss = self.criterion(y_train, t_one)
+        loss.backward()
+        loss_on = loss.item()
+        self.optimizer.step()
+        self.writer.add_scalar("on_loss", loss_on, self.on_count)
+        self.on_count +=1
+        return self.loss_all
     def act_and_trains(self, img,dir_cmd ,train_dataset):
         # self.device = torch.device('cuda')
         # print(self.device)
@@ -274,6 +310,11 @@ class deep_learning:
         os.makedirs(path)
         torch.save(self.net.state_dict(), path + '/model_gpu.pt')
         print("save_model")
+    def save_tensor(self,input_tensor,save_path,file_name):
+        path = save_path + time.strftime("%Y%m%d_%H:%M:%S")
+        os.makedirs(path)
+        torch.save(input_tensor, path + file_name)
+        print("save_model_tensor:",)
 
     def load(self, load_path):
         # <model load>
