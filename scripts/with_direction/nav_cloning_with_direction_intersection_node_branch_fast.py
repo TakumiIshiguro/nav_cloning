@@ -8,7 +8,8 @@ import rospy
 import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from nav_cloning_with_direction_net_branch import *
+# from nav_cloning_with_direction_net_branch import *
+from nav_cloning_with_direction_net_branch_on import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
@@ -75,7 +76,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num =4000
+        self.episode_num = 375
         self.target_dataset = 8500
         self.train_flag = False
         self.padding_data = 3
@@ -188,13 +189,15 @@ class nav_cloning_node:
         #     self.dl.load(self.load_path)
         #     print("load model",self.load_path)
         
-        if self.episode == self.episode_num:
-            self.learning = False
-            # self.dl.save(self.save_path)
-            #self.dl.load(self.load_path)
-        if self.episode == self.episode_num+2000:
-            os.system('killall roslaunch')
-            sys.exit()
+        # if self.episode == self.episode_num:
+        #     self.learning = False
+        #     # self.dl.save(self.save_path)
+        #     #self.dl.load(self.load_path)
+        # # willow
+        # # if self.episode == self.episode_num+1800:
+        # if self.episode == self.episode_num+400:
+        #     os.system('killall roslaunch')
+        #     sys.exit()
 
         if self.learning:
             target_action = self.action
@@ -251,14 +254,35 @@ class nav_cloning_node:
                 angle_error = abs(action - target_action)
                 loss = 0
                 if angle_error > 0.05:
-                    action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, target_action)
-                    if abs(target_action) < 0.15: #0.1
-                        action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, target_action - 0.2)
-                        action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, target_action + 0.2)
+                    dataset , dataset_num, train_dataset = self.dl.make_dataset(img,self.cmd_dir_data,target_action)
+                    action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, train_dataset)
+                    action = action * 1.5
+                    action = max(min(action, 0.45), -0.45)
+                    if abs(target_action) < 0.2: #0.1
+                        dataset , dataset_num, train_dataset = self.dl.make_dataset(img_left,self.cmd_dir_data,target_action-0.2)
+                        action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
+                        dataset , dataset_num, train_dataset = self.dl.make_dataset(img_right,self.cmd_dir_data,target_action+0.2)
+                        action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
                 
-                # if distance > 0.15 or angle_error > 0.3:
-                #     self.select_dl = False
-                if distance > 0.1:
+                if self.loop_count_flag:
+                    print("loop count")
+                    self.vel.linear.x = 0.0
+                    self.vel.angular.z = 0.0
+                    self.nav_pub.publish(self.vel)
+                    self.dl.save(self.save_path)
+                    print("Finish learning!!")
+                    self.learning = False                    
+ 
+                else:
+                    pass
+                if self.cmd_dir_data == (0,1,0) or self.cmd_dir_data == (0,0,1):
+                    if distance > 0.05 or angle_error >0.15:
+                        self.select_dl =False
+                        print("OONUMA")
+                    else:
+                        pass
+                        
+                if distance > 0.145 or angle_error > 0.3:
                     self.select_dl = False
                 elif distance < 0.05:
                     self.select_dl = True

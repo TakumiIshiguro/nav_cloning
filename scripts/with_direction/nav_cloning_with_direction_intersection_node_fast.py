@@ -8,7 +8,8 @@ import rospy
 import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from nav_cloning_with_direction_net_branch import *
+# from nav_cloning_with_direction_net import *
+from nav_cloning_with_direction_net_off import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
@@ -32,7 +33,8 @@ from nav_msgs.msg import Odometry
 class nav_cloning_node:
     def __init__(self):
         rospy.init_node('nav_cloning_node', anonymous=True)
-        self.mode = rospy.get_param("/nav_cloning_node/mode", "use_dl_output")
+        # self.mode = rospy.get_param("/nav_cloning_node/mode", "use_dl_output")
+        self.mode = rospy.get_param("/nav_cloning_node/mode", "selected_training")
         self.action_num = 1
         self.dl = deep_learning(n_action = self.action_num)
         self.bridge = CvBridge()
@@ -43,7 +45,7 @@ class nav_cloning_node:
         self.action_pub = rospy.Publisher("action", Int8, queue_size=1)
         self.nav_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.srv = rospy.Service('/training', SetBool, self.callback_dl_training)
-        # self.loop_count_srv = rospy.Service('loop_count',SetBool,self.loop_count_callback)
+        self.loop_count_srv = rospy.Service('loop_count',SetBool,self.loop_count_callback)
         self.mode_save_srv = rospy.Service('/model_save', Trigger, self.callback_model_save)
         self.pose_sub = rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, self.callback_pose)
         self.path_sub = rospy.Subscriber("/move_base/NavfnROS/plan", Path, self.callback_path) 
@@ -63,23 +65,25 @@ class nav_cloning_node:
         self.loop_count_flag = False
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_'+str(self.mode)+'/'
-        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/branch/'
-        # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/v2_net/model_gpu.pt'
+        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/add/'
+        # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/add/m/model_gpu.pt'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/add/a-f/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
-        #self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_new/model_gpu.pt'
-        # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
-        
+        # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/koremade_off/model_gpu.pt'
+        # self.load_path ='/home/rdclab/orne_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_pad3_loop_1/model_gpu.pt'
+        # self.load_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/off_pad_3_loop_1_30_ep_add/model_gpu.pt'
+
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num =4000
-        self.target_dataset = 8500
+        # self.episode_num
+        # self.target_dataset
         self.train_flag = False
         self.padding_data = 3
-        print(self.episode_num)
+        # print(self.episode_num)
         #self.cmd_dir_data = [0, 0, 0]
         self.start_time_s = rospy.get_time()
         os.makedirs(self.path + self.start_time)
@@ -142,12 +146,12 @@ class nav_cloning_node:
         resp.success = True
         return resp
 
-    # def loop_count_callback(self,data):
-    #     resp = SetBoolResponse()
-    #     self.loop_count_flag = data.data
-    #     resp.message = "count flag"
-    #     resp.success= True
-    #     return resp
+    def loop_count_callback(self,data):
+        resp = SetBoolResponse()
+        self.loop_count_flag = data.data
+        resp.message = "count flag"
+        resp.success= True
+        return resp
 
     def callback_model_save(self, data):
         model_res = SetBoolResponse()
@@ -182,19 +186,19 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        # if self.episode == 0:
-        #     self.learning = False
-        #     #self.dl.save(self.save_path)
-        #     self.dl.load(self.load_path)
-        #     print("load model",self.load_path)
-        
-        if self.episode == self.episode_num:
-            self.learning = False
+        if self.episode == 0:
+            # self.learning = False
             # self.dl.save(self.save_path)
-            #self.dl.load(self.load_path)
-        if self.episode == self.episode_num+2000:
-            os.system('killall roslaunch')
-            sys.exit()
+            self.dl.load(self.load_path)
+            print("load model",self.load_path)
+        
+        # if self.episode == self.episode_num:
+        #     self.learning = False
+        #     self.dl.save(self.save_path)
+        #     #self.dl.load(self.load_path)
+        # if self.episode == self.episode_num+20000:
+        #     os.system('killall roslaunch')
+        #     sys.exit()
 
         if self.learning:
             target_action = self.action
@@ -250,29 +254,68 @@ class nav_cloning_node:
                 action = self.dl.act(img, self.cmd_dir_data)
                 angle_error = abs(action - target_action)
                 loss = 0
-                if angle_error > 0.05:
-                    action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, target_action)
-                    if abs(target_action) < 0.15: #0.1
-                        action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, target_action - 0.2)
-                        action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, target_action + 0.2)
-                
+                if angle_error > 0.05 and self.train_flag == False:
+                # if (angle_error > 0.05 or self.cmd_dir_data == (0,1,0) or self.cmd_dir_data == (0,0,1) ) and self.train_flag == False:
+                    dataset , dataset_num, train_dataset = self.dl.make_dataset(img,self.cmd_dir_data,target_action)
+                    action, loss = self.dl.act_and_trains(img, self.cmd_dir_data,train_dataset)
+                    action = action * 1.5
+                    action = max(min(action, 0.45), -0.45)
+                    if abs(target_action) < 0.2: #0.1 #0.15
+                        dataset , dataset_num, train_dataset = self.dl.make_dataset(img_left,self.cmd_dir_data,target_action-0.2)
+                        action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
+                        dataset , dataset_num, train_dataset = self.dl.make_dataset(img_right,self.cmd_dir_data,target_action+0.2)
+                        action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
+                        # if self.cmd_dir_data == (0,1,0) or self.cmd_dir_data == (0,0,1):
+                        #     for i in range(self.padding_data):
+                        #         # print("padding")
+                        #         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_left,self.cmd_dir_data,target_action-0.2)
+                        #         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_right,self.cmd_dir_data,target_action+0.2)
+                                
+                    #if dataset_num >= self.target_dataset:
+                if self.loop_count_flag:
+                    print("loop count")
+                    # self.train_flag = True
+                # if self.train_flag:
+                    self.vel.linear.x = 0.0
+                    self.vel.angular.z = 0.0
+                    self.nav_pub.publish(self.vel)
+                #     dataset , dataset_num, train_dataset = self.dl.make_dataset(img,self.cmd_dir_data,target_action)
+                #     loss = self.dl.trains(train_dataset)
+                    self.dl.save(self.save_path)
+                    self.learning = False                    
+                    print("Finish learning!!")
+                else:
+                    pass
                 # if distance > 0.15 or angle_error > 0.3:
                 #     self.select_dl = False
-                if distance > 0.1:
+                # if distance > 0.1:
+                #     self.select_dl = False
+                # if distance > 0.1:
+                #     self.select_dl = False
+                # elif distance < 0.05:
+                #     self.select_dl = True
+                # if self.select_dl and self.episode >= 0:
+                #     target_action = action
+                if self.cmd_dir_data == (0,1,0) or self.cmd_dir_data == (0,0,1):
+                    if distance > 0.05 or angle_error >0.15:
+                        self.select_dl =False
+                        print("OONUMA")
+                    else:
+                        pass
+                if distance > 0.145 or angle_error >0.3:
                     self.select_dl = False
                 elif distance < 0.05:
                     self.select_dl = True
                 if self.select_dl and self.episode >= 0:
                     target_action = action
-
             # end mode
 
             print(str(self.episode) + ", training, loss: " + str(loss) + ", angle_error: " + str(angle_error) + ", distance: " + str(distance) + ", self.cmd_dir_data: " + str(self.cmd_dir_data))
             self.episode += 1
-            line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the), str(self.cmd_dir_data)]
-            with open(self.path + self.start_time + '/' + 'training.csv', 'a') as f:
-                writer = csv.writer(f, lineterminator='\n')
-                writer.writerow(line)
+            #line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the), str(self.cmd_dir_data)]
+            #with open(self.path + self.start_time + '/' + 'training.csv', 'a') as f:
+            #    writer = csv.writer(f, lineterminator='\n')
+            #    writer.writerow(line)
             self.vel.linear.x = 0.2
             self.vel.angular.z = target_action
             self.nav_pub.publish(self.vel)
@@ -280,10 +323,7 @@ class nav_cloning_node:
         else:
             #print('\033[32m'+'test_mode'+'\033[0m')
             target_action = self.dl.act(img, self.cmd_dir_data)
-            if abs(target_action) >1.82:
-                target_action=1.82
-            else:
-                pass
+            target_action = max(min(target_action, 1.82), -1.82)
             distance = self.min_distance
             print(str(self.episode) + ", test, angular:" + str(target_action) + ", distance: " + str(distance) + ", self.cmd_dir_data: " + str(self.cmd_dir_data))
 
