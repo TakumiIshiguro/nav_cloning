@@ -8,8 +8,8 @@ import rospy
 import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-# from nav_cloning_with_direction_net import *
-from nav_cloning_with_direction_net_off import *
+from nav_cloning_with_direction_net_branch_on import *
+# from nav_cloning_with_direction_net_off import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
@@ -58,15 +58,18 @@ class nav_cloning_node:
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_'+str(self.mode)+'/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/'
-        self.load_path='/home/takumi/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_pad_3_loop_1_30_ep_add/model_gpu.pt'
+        # self.load_path='/home/takumi/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_pad_3_loop_1_30_ep_add/model_gpu.pt'
         # self.load_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/off_pad_3_loop_1_30_ep_add/model_gpu.pt'
+        # self.load_path='/home/takumi/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/add/h/model_gpu.pt'
+        # self.load_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/add/model_gpu.pt'
+        self.load_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/branch/test/model_gpu.pt'
 
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
         self.pos_the = 0.0
         self.is_started = False
-        # self.cmd_dir_data = (0, 0, 0)
+        self.cmd_dir_data = (0, 0, 0)
         self.episode_num =12000
         self.target_dataset = 8500
         self.train_flag = False
@@ -139,10 +142,10 @@ class nav_cloning_node:
             target_action = self.dl.act(img, self.cmd_dir_data)
             self.vel.linear.x = 0.2
             self.vel.angular.z = target_action
-            if abs(target_action) >1.82:
-                target_action=1.82
-            else:
-                pass
+            # if abs(target_action) >1.82:
+            #     target_action=1.82
+            # else:
+            #     pass
 
         print(str(self.episode) + ", test, angular:" + str(target_action) + ", self.cmd_dir_data: " + str(self.cmd_dir_data))
 
