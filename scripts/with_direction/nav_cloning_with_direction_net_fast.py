@@ -308,8 +308,14 @@ class deep_learning:
         # <model save>
         path = save_path + time.strftime("%Y%m%d_%H:%M:%S")
         os.makedirs(path)
-        torch.save(self.net.state_dict(), path + '/model_gpu.pt')
+        # torch.save(self.net.state_dict(), path + '/model_gpu.pt')
+        torch.save({
+            'model_state_dict': self.net.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'loss': self.loss_all,
+        }, path + '/checkpoint.pt')
         print("save_model")
+
     def save_tensor(self,input_tensor,save_path,file_name):
         path = save_path + time.strftime("%Y%m%d_%H:%M:%S")
         os.makedirs(path)
@@ -318,7 +324,11 @@ class deep_learning:
 
     def load(self, load_path):
         # <model load>
-        self.net.load_state_dict(torch.load(load_path))
+        # self.net.load_state_dict(torch.load(load_path))
+        checkpoint = torch.load(load_path)
+        self.net.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.loss_all = checkpoint['loss']
         print("load_model =", load_path)
 
 
