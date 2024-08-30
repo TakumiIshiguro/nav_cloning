@@ -9,7 +9,7 @@ import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 # from nav_cloning_with_direction_net_branch import *
-from nav_cloning_with_direction_net_branch_on import *
+from nav_cloning_with_direction_net_branch_fast import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
@@ -33,7 +33,7 @@ from nav_msgs.msg import Odometry
 class nav_cloning_node:
     def __init__(self):
         rospy.init_node('nav_cloning_node', anonymous=True)
-        self.mode = rospy.get_param("/nav_cloning_node/mode", "use_dl_output")
+        self.mode = rospy.get_param("/nav_cloning_node/mode", "selected_training")
         self.action_num = 1
         self.dl = deep_learning(n_action = self.action_num)
         self.bridge = CvBridge()
@@ -44,7 +44,7 @@ class nav_cloning_node:
         self.action_pub = rospy.Publisher("action", Int8, queue_size=1)
         self.nav_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.srv = rospy.Service('/training', SetBool, self.callback_dl_training)
-        # self.loop_count_srv = rospy.Service('loop_count',SetBool,self.loop_count_callback)
+        self.loop_count_srv = rospy.Service('loop_count',SetBool,self.loop_count_callback)
         self.mode_save_srv = rospy.Service('/model_save', Trigger, self.callback_model_save)
         self.pose_sub = rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, self.callback_pose)
         self.path_sub = rospy.Subscriber("/move_base/NavfnROS/plan", Path, self.callback_path) 
@@ -64,8 +64,8 @@ class nav_cloning_node:
         self.loop_count_flag = False
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_'+str(self.mode)+'/'
-        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/branch/'
-        # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/v2_net/model_gpu.pt'
+        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/branch/add/'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/branch/add/m/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
         #self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_new/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
@@ -76,7 +76,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num = 375
+        self.episode_num = 10000
         self.target_dataset = 8500
         self.train_flag = False
         self.padding_data = 3
@@ -143,12 +143,12 @@ class nav_cloning_node:
         resp.success = True
         return resp
 
-    # def loop_count_callback(self,data):
-    #     resp = SetBoolResponse()
-    #     self.loop_count_flag = data.data
-    #     resp.message = "count flag"
-    #     resp.success= True
-    #     return resp
+    def loop_count_callback(self,data):
+        resp = SetBoolResponse()
+        self.loop_count_flag = data.data
+        resp.message = "count flag"
+        resp.success= True
+        return resp
 
     def callback_model_save(self, data):
         model_res = SetBoolResponse()
@@ -183,11 +183,11 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        # if self.episode == 0:
-        #     self.learning = False
-        #     #self.dl.save(self.save_path)
-        #     self.dl.load(self.load_path)
-        #     print("load model",self.load_path)
+        if self.episode == 0:
+            self.learning = True
+            #self.dl.save(self.save_path)
+            self.dl.load(self.load_path)
+            print("load model",self.load_path)
         
         # if self.episode == self.episode_num:
         #     self.learning = False

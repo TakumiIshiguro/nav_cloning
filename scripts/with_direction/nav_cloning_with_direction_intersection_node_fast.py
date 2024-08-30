@@ -9,7 +9,7 @@ import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 # from nav_cloning_with_direction_net import *
-from nav_cloning_with_direction_net_off import *
+from nav_cloning_with_direction_net_fast import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
@@ -65,9 +65,9 @@ class nav_cloning_node:
         self.loop_count_flag = False
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_'+str(self.mode)+'/'
-        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/add/'
-        # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/add/m/model_gpu.pt'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/add/a-f/model_gpu.pt'
+        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/direction/'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/direction/right/checkpoint.pt'
+        # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/add/a-f/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/koremade_off/model_gpu.pt'
         # self.load_path ='/home/rdclab/orne_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_pad3_loop_1/model_gpu.pt'
@@ -79,7 +79,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        # self.episode_num
+        self.episode_num = 10000
         # self.target_dataset
         self.train_flag = False
         self.padding_data = 3
@@ -187,7 +187,7 @@ class nav_cloning_node:
         ros_time = str(rospy.Time.now())
 
         if self.episode == 0:
-            # self.learning = False
+            self.learning = False
             # self.dl.save(self.save_path)
             self.dl.load(self.load_path)
             print("load model",self.load_path)
@@ -196,7 +196,7 @@ class nav_cloning_node:
         #     self.learning = False
         #     self.dl.save(self.save_path)
         #     #self.dl.load(self.load_path)
-        # if self.episode == self.episode_num+20000:
+        # if self.episode == self.episode_num+10000:
         #     os.system('killall roslaunch')
         #     sys.exit()
 
@@ -282,8 +282,8 @@ class nav_cloning_node:
                 #     dataset , dataset_num, train_dataset = self.dl.make_dataset(img,self.cmd_dir_data,target_action)
                 #     loss = self.dl.trains(train_dataset)
                     self.dl.save(self.save_path)
-                    self.learning = False                    
                     print("Finish learning!!")
+                    self.learning = False                    
                 else:
                     pass
                 # if distance > 0.15 or angle_error > 0.3:
