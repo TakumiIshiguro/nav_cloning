@@ -48,7 +48,7 @@
       <param name="dist_err" value="$(arg dist_err)"/>
       <param name="max_update_rate" value="$(arg rate)"/>
       <param name="loop_flag" value="$(arg loop)"/>    </node> -->
-    <node name="waypoint_nav" pkg="waypoint_nav" type="waypoint_navigator_with_direction_intersection" output="screen">
+    <node name="waypoint_nav" pkg="waypoint_nav" type="waypoint_navigator_with_direction_intersection_detailed" output="screen">
       <param name="filename" value="$(arg waypoints_file)"/>
       <param name="dist_err" value="$(arg dist_err)"/>
       <param name="max_update_rate" value="$(arg rate)"/>
