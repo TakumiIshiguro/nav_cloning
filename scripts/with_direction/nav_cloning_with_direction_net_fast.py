@@ -172,62 +172,31 @@ class deep_learning:
         print("dataset_num:",len(dataset))
         return dataset,len(dataset) ,train_dataset
     
-    # def load_dataset(self,image_path,dir_path,vel_path):
-    #     x_tensor = torch.load(image_path)
-    #     c_tensor = torch.load(dir_path)
-    #     t_tensor = torch.load(vel_path)
-    #     # dataset = TensorDataset(x_tensor, c_tensor, t_tensor)
-    #     # train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
-    #     #     'cpu').manual_seed(0), shuffle=True)
-    #     print("load_image:",x_tensor.shape)
-    #     print("load_dir:",c_tensor.shape)
-    #     print("load_vel:",t_tensor.shape)
-    #     return x_tensor,c_tensor,t_tensor
-    
-    def trains(self,train_dataset):
+    def trains(self):
+        if self.first_flag:
+            return
         #self.device = torch.device('cuda')
-        print(self.device)
-        # <Training mode>
+        # print("on_training:",self.on_count)
         self.net.train()
-        for epoch in range(EPOCH):
-            print(epoch)
-            for x_train, c_train, t_train in train_dataset:
-                x_train.to(self.device, non_blocking=True)
-                c_train.to(self.device, non_blocking=True)
-                t_train.to(self.device, non_blocking=True)
+        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
+        train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
+            'cpu').manual_seed(0), shuffle=True)
+        for x_train, c_train, t_train in train_dataset:
+            x_train.to(self.device, non_blocking=True)
+            c_train.to(self.device, non_blocking=True)
+            t_train.to(self.device, non_blocking=True)
+            break
             
-            # <use data augmentation>
-                # x_train = self.transform_color(x_train)
-            # <learning>
-                self.optimizer.zero_grad()
-                y_train = self.net(x_train, c_train)
-            # print("y_train=",y_train.shape,"t_train",t_train.shape)
-                loss = self.criterion(y_train, t_train)
-                loss.backward()
-                self.loss_all = loss.item()
-                self.optimizer.step()
-                self.writer.add_scalar("loss", self.loss_all, self.count)
-                self.count += 1
-        return self.loss_all
-    def on_trains(self,img,dir_cmd,vel):
-        print("on_training:",self.on_count)
-        x_one = torch.tensor(
-            img, dtype=torch.float32, device=self.device).unsqueeze(0)
-        x_one= x_one.permute(0, 3, 1, 2)
-        c_one = torch.tensor(dir_cmd, dtype=torch.float32,
-                              device=self.device).unsqueeze(0)
-        t_one = torch.tensor(vel, dtype=torch.float32,
-                              device=self.device).unsqueeze(0)
         self.optimizer.zero_grad()
-        y_train = self.net(x_one, c_one)
-        loss = self.criterion(y_train, t_one)
+        y_train = self.net(x_train, c_train)
+        loss = self.criterion(y_train, t_train)
         loss.backward()
-        loss_on = loss.item()
+        self.loss_on = loss.item()
         self.optimizer.step()
-        self.writer.add_scalar("on_loss", loss_on, self.on_count)
-        self.on_count +=1
-        return self.loss_all
-    def act_and_trains(self, img,dir_cmd ,train_dataset):
+        # self.writer.add_scalar("on_loss", loss_on, self.on_count)
+        # self.on_count +=1
+
+    def act_and_trains(self, img, dir_cmd, train_dataset):
         # self.device = torch.device('cuda')
         # print(self.device)
         # <Training mode>
@@ -248,7 +217,6 @@ class deep_learning:
     # print("y_train=",y_train.shape,"t_train",t_train.shape)
         loss = self.criterion(y_train, t_train)
         loss.backward()
-        self.loss_all = loss.item()
         self.optimizer.step()
         # self.writer.add_scalar("loss",loss,self.count)
 
@@ -282,7 +250,7 @@ class deep_learning:
             # self.first_flag = True
             # print("reset dataset")
 
-        return action_value_training[0][0].item() ,self.loss_all
+        return action_value_training[0][0].item(), loss.item()
 
     def act(self, img, dir_cmd):
         self.net.eval()
@@ -313,14 +281,14 @@ class deep_learning:
             'model_state_dict': self.net.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'loss': self.loss_all,
-        }, path + '/checkpoint.pt')
+        }, path + '/model.pt')
         print("save_model")
 
-    def save_tensor(self,input_tensor,save_path,file_name):
+    def save_dataset(self, save_path, dataset):
         path = save_path + time.strftime("%Y%m%d_%H:%M:%S")
         os.makedirs(path)
-        torch.save(input_tensor, path + file_name)
-        print("save_model_tensor:",)
+        torch.save(dataset, path + '/dataset.pt')
+        print("save_dataset:")
 
     def load(self, load_path):
         # <model load>
