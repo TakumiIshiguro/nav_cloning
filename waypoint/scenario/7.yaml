@@ -1,0 +1,21 @@
+waypoints:
+    - point:
+        x: -10.0322
+        y: 27.074
+        z: -0.000243186
+        function: run
+    - point:
+        x: -7.53654
+        y: 29.3079
+        z: -0.000241278
+        function: run_right_3_way_right
+    - point:
+        x: -2.79499
+        y: 29.2923
+        z: -0.000242232
+        function: run
+    - point:
+        x: -0.391189
+        y: 31.4567
+        z: -0.000244139
+        function: run_left_3_way_center
