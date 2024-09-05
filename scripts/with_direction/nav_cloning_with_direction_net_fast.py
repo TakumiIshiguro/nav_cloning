@@ -191,10 +191,12 @@ class deep_learning:
         y_train = self.net(x_train, c_train)
         loss = self.criterion(y_train, t_train)
         loss.backward()
-        self.loss_on = loss.item()
+        self.loss_all = loss.item()
         self.optimizer.step()
         # self.writer.add_scalar("on_loss", loss_on, self.on_count)
         # self.on_count +=1
+
+        return self.loss_all
 
     def act_and_trains(self, img, dir_cmd, train_dataset):
         # self.device = torch.device('cuda')
@@ -217,6 +219,7 @@ class deep_learning:
     # print("y_train=",y_train.shape,"t_train",t_train.shape)
         loss = self.criterion(y_train, t_train)
         loss.backward()
+        self.loss_all = loss.item() 
         self.optimizer.step()
         # self.writer.add_scalar("loss",loss,self.count)
 
@@ -250,7 +253,7 @@ class deep_learning:
             # self.first_flag = True
             # print("reset dataset")
 
-        return action_value_training[0][0].item(), loss.item()
+        return action_value_training[0][0].item(), self.loss_all
 
     def act(self, img, dir_cmd):
         self.net.eval()
@@ -284,11 +287,11 @@ class deep_learning:
         }, path + '/model.pt')
         print("save_model")
 
-    def save_dataset(self, save_path, dataset):
+    def save_tensor(self,input_tensor,save_path,file_name):
         path = save_path + time.strftime("%Y%m%d_%H:%M:%S")
         os.makedirs(path)
-        torch.save(dataset, path + '/dataset.pt')
-        print("save_dataset:")
+        torch.save(input_tensor, path + file_name)
+        print("save_model_tensor:",)
 
     def load(self, load_path):
         # <model load>

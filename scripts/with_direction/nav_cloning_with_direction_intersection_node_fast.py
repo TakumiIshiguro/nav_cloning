@@ -47,7 +47,6 @@ class nav_cloning_node:
         self.srv = rospy.Service('/training', SetBool, self.callback_dl_training)
         self.loop_count_srv = rospy.Service('loop_count',SetBool,self.loop_count_callback)
         self.model_save_srv = rospy.Service('/model_save', Trigger, self.callback_model_save)
-        self.dataset_save_srv = rospy.Service('/dataset_save', Trigger, self.callback_dataset_save)
         self.pose_sub = rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, self.callback_pose)
         self.path_sub = rospy.Subscriber("/move_base/NavfnROS/plan", Path, self.callback_path) 
         # self.path_sub = rospy.Subscriber("/move_base/GlobalPlanner/plan", Path, self.callback_path)
@@ -185,11 +184,11 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        if self.episode == 0:
-            self.learning = False
-            # self.dl.save(self.save_path)
-            self.dl.load(self.load_path)
-            print("load model",self.load_path)
+        # if self.episode == 0:
+        #     self.learning = False
+        #     # self.dl.save(self.save_path)
+        #     self.dl.load(self.load_path)
+        #     print("load model",self.load_path)
         
         # if self.episode == self.episode_num:
         #     self.learning = False
@@ -275,7 +274,7 @@ class nav_cloning_node:
                         #         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_left,self.cmd_dir_data,target_action-0.2)
                         #         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_right,self.cmd_dir_data,target_action+0.2)
                 else:
-                    self.dl.trains()
+                    loss = self.dl.trains()
                     print("online traing")
                                 
                 if self.loop_count_flag:
