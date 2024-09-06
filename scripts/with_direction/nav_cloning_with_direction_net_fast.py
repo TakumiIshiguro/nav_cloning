@@ -51,9 +51,6 @@ class Net(nn.Module):
         torch.nn.init.kaiming_normal_(self.fc5.weight)
         torch.nn.init.kaiming_normal_(self.fc6.weight)
         torch.nn.init.kaiming_normal_(self.fc7.weight)
-        #self.fc7.weight = nn.Parameter(torch.zeros(n_channel,260))
-        #self.maxpool = nn.MaxPool2d(2,2)
-        #self.batch = nn.BatchNorm2d(0.2)
         self.flatten = nn.Flatten()
     # CNN layer
         self.cnn_layer = nn.Sequential(
@@ -63,7 +60,6 @@ class Net(nn.Module):
             self.relu,
             self.conv3,
             self.relu,
-            # self.maxpool,
             self.flatten
         )
     # FC layer
@@ -121,7 +117,6 @@ class deep_learning:
         torch.backends.cudnn.benchmark = False
         # self.writer = SummaryWriter(log_dir='/home/orne_beta/haruyama_ws/src/nav_cloning/runs')
 
-        #self.writer = SummaryWriter(log_dir="/home/haru/nav_ws/src/nav_cloning/runs",comment="log_1")
     def make_dataset(self,img, dir_cmd, target_angle):        
         if self.first_flag:
             self.x_cat = torch.tensor(
@@ -142,7 +137,6 @@ class deep_learning:
             # print("c_shape:",self.x_cat.shape)
             # print("t_shape:",self.t_cat.shape)
             self.first_flag = False
-        # x= torch.tensor(self.transform(img),dtype=torch.float32, device=self.device).unsqueeze(0)
         # <To tensor img(x),cmd(c),angle(t)>
         x = torch.tensor(img, dtype=torch.float32,
                          device=self.device).unsqueeze(0)
@@ -195,7 +189,6 @@ class deep_learning:
         self.optimizer.step()
         # self.writer.add_scalar("on_loss", loss_on, self.on_count)
         # self.on_count +=1
-
         return self.loss_all
 
     def act_and_trains(self, img, dir_cmd, train_dataset):
@@ -203,8 +196,6 @@ class deep_learning:
         # print(self.device)
         # <Training mode>
         self.net.train()
-        #dataset, dataset_num ,train_dataset = self.make_dataset(img,dir_cmd,target_angle)
-        
             # <split dataset and to device>
         for x_train, c_train, t_train in train_dataset:
             x_train.to(self.device, non_blocking=True)
@@ -234,31 +225,11 @@ class deep_learning:
         # self.writer.add_scalar("loss", self.loss_all, self.count)
         # self.count += 1
         #print("action=" ,action_value_training[0][0].item() ,"loss=" ,loss.item())
-
-        # if self.first_flag:
-        #     self.writer.add_graph(self.net,(x,c))
-        # self.writer.close()
-        # self.writer.flush()
-        # <reset dataset>
-        # if self.x_cat.size()[0] > MAX_DATA:
-        #     self.x_cat = self.x_cat[1:]
-        #     self.c_cat = self.c_cat[1:]
-        #     self.t_cat = self.t_cat[1:]
-            # self.x_cat = torch.empty(1, 3, 48, 64).to(self.device)
-            # self.c_cat = torch.empty(1, 4).to(self.device)
-            # self.t_cat = torch.empty(1, 1).to(self.device)
-            # self.dir_list = torch.empty(1,4).to(self.device)
-            # self.dir_list = torch.empty(1, 4).to(self.device)
-            # self.target_angles = torch.empty(1, 1).to(self.device)
-            # self.first_flag = True
-            # print("reset dataset")
-
         return action_value_training[0][0].item(), self.loss_all
 
     def act(self, img, dir_cmd):
         self.net.eval()
         # <make img(x_test_ten),cmd(c_test)>
-        # x_test_ten = torch.tensor(self.transform(img),dtype=torch.float32, device=self.device).unsqueeze(0)
         x_test_ten = torch.tensor(
             img, dtype=torch.float32, device=self.device).unsqueeze(0)
         x_test_ten = x_test_ten.permute(0, 3, 1, 2)

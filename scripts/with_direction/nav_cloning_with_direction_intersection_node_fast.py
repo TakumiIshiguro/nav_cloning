@@ -8,7 +8,6 @@ import rospy
 import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-# from nav_cloning_with_direction_net import *
 from nav_cloning_with_direction_net_fast import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
@@ -17,7 +16,6 @@ from std_msgs.msg import Int8
 from std_srvs.srv import Trigger
 from nav_msgs.msg import Path
 from std_msgs.msg import Int8MultiArray
-#from waypoint_nav.msg import cmd_dir_intersection
 from scenario_navigation_msgs.msg import cmd_dir_intersection
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from std_srvs.srv import Empty
@@ -33,7 +31,6 @@ from nav_msgs.msg import Odometry
 class nav_cloning_node:
     def __init__(self):
         rospy.init_node('nav_cloning_node', anonymous=True)
-        # self.mode = rospy.get_param("/nav_cloning_node/mode", "use_dl_output")
         self.mode = rospy.get_param("/nav_cloning_node/mode", "selected_training")
         self.action_num = 1
         self.dl = deep_learning(n_action = self.action_num)
@@ -49,8 +46,6 @@ class nav_cloning_node:
         self.model_save_srv = rospy.Service('/model_save', Trigger, self.callback_model_save)
         self.pose_sub = rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, self.callback_pose)
         self.path_sub = rospy.Subscriber("/move_base/NavfnROS/plan", Path, self.callback_path) 
-        # self.path_sub = rospy.Subscriber("/move_base/GlobalPlanner/plan", Path, self.callback_path)
- #       self.cmd_dir_sub = rospy.Subscriber("/cmd_dir_intersection", Int8MultiArray, self.callback_cmd,queue_size=1)
         self.cmd_dir_sub = rospy.Subscriber("/cmd_dir_intersection", cmd_dir_intersection, self.callback_cmd,queue_size=1)
         self.min_distance = 0.0
         self.action = 0.0
@@ -69,7 +64,7 @@ class nav_cloning_node:
         self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_'+str(self.mode)+'/cit3f/dir/'
         self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_'+str(self.mode)+'/cit3f/vel/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/direction/'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/direction/h/model.pt'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/direction/a-f3/model.pt'
 
         self.previous_reset_time = 0
         self.pos_x = 0.0
@@ -78,11 +73,9 @@ class nav_cloning_node:
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
         self.episode_num = 10000
-        # self.target_dataset
+        # print(self.episode_num)
         self.train_flag = False
         self.padding_data = 3
-        # print(self.episode_num)
-        #self.cmd_dir_data = [0, 0, 0]
         self.start_time_s = rospy.get_time()
         os.makedirs(self.path + self.start_time)
 
@@ -254,7 +247,6 @@ class nav_cloning_node:
                 loss = 0
 
                 if angle_error > 0.05:
-                # if (angle_error > 0.05 or self.cmd_dir_data == (0,1,0) or self.cmd_dir_data == (0,0,1) ) and self.train_flag == False:
                     # loss = self.dl.trains(img, self.cmd_dir_data, target_action)
                     dataset , dataset_num, train_dataset = self.dl.make_dataset(img, self.cmd_dir_data, target_action)
                     action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, train_dataset)
@@ -268,11 +260,7 @@ class nav_cloning_node:
                         # loss_right = self.dl.trains(img_right, self.cmd_dir_data, target_action)
                         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_right, self.cmd_dir_data, target_action+0.2)
                         action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
-                        # if self.cmd_dir_data == (0,1,0) or self.cmd_dir_data == (0,0,1):
-                        #     for i in range(self.padding_data):
-                        #         # print("padding")
-                        #         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_left,self.cmd_dir_data,target_action-0.2)
-                        #         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_right,self.cmd_dir_data,target_action+0.2)
+
                 else:
                     loss = self.dl.trains()
                     print("online traing")
@@ -291,7 +279,6 @@ class nav_cloning_node:
                 if self.cmd_dir_data == (0,1,0) or self.cmd_dir_data == (0,0,1):
                     if distance > 0.05 or angle_error >0.15:
                         self.select_dl =False
-                        print("OONUMA")
                     else:
                         pass
 
@@ -329,14 +316,6 @@ class nav_cloning_node:
             self.vel.linear.x = 0.2
             self.vel.angular.z = target_action
             self.nav_pub.publish(self.vel)
-
-        # temp = copy.deepcopy(img)
-        # cv2.imshow("Resized Image", temp)
-        # temp = copy.deepcopy(img_left)
-        # cv2.imshow("Resized Left Image", temp)
-        # temp = copy.deepcopy(img_right)
-        # cv2.imshow("Resized Right Image", temp)
-        # cv2.waitKey(1)
 
 if __name__ == '__main__':
     rg = nav_cloning_node()
