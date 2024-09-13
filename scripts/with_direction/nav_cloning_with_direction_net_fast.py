@@ -89,7 +89,7 @@ class deep_learning:
     def __init__(self, n_channel=3, n_action=1):
         # tensor device choiece
         self.device = torch.device(
-            'cuda' if torch.cuda.is_available() else 'cpu')
+            'cuda:0' if torch.cuda.is_available() else 'cpu')
         torch.manual_seed(0)
         self.net = Net(n_channel, n_action)
         self.net.to(self.device)
@@ -117,7 +117,13 @@ class deep_learning:
         torch.backends.cudnn.benchmark = False
         # self.writer = SummaryWriter(log_dir='/home/orne_beta/haruyama_ws/src/nav_cloning/runs')
 
-    def make_dataset(self,img, dir_cmd, target_angle):        
+    def call_dataset(self):
+        if self.first_flag:
+            return
+        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
+        return self.x_cat, self.c_cat, self.t_cat
+    
+    def make_dataset(self, img, dir_cmd, target_angle):        
         if self.first_flag:
             self.x_cat = torch.tensor(
                 img, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -258,11 +264,10 @@ class deep_learning:
         }, path + '/model.pt')
         print("save_model")
 
-    def save_tensor(self,input_tensor,save_path,file_name):
-        path = save_path + time.strftime("%Y%m%d_%H:%M:%S")
+    def save_tensor(self, input_tensor, path, file_name):
         os.makedirs(path)
         torch.save(input_tensor, path + file_name)
-        print("save_model_tensor:",)
+        print("save_dataset_tensor:",)
 
     def load(self, load_path):
         # <model load>
