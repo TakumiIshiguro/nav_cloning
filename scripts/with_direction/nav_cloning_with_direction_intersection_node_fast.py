@@ -59,20 +59,20 @@ class nav_cloning_node:
         self.select_dl = False
         self.loop_count_flag = False
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
-        self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_'+str(self.mode)+'/'
-        self.save_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_'+str(self.mode)+'/cit3f/image/'
-        self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_'+str(self.mode)+'/cit3f/dir/'
-        self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_'+str(self.mode)+'/cit3f/vel/'
-        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/direction/'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/direction/a-f3/model.pt'
-
+        self.place = 'cit3f'
+        self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_' + str(self.mode) + '/'
+        self.save_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/image/'
+        self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/dir/'
+        self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/vel/'
+        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/1/model.pt'
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num = 10000
+        self.episode_num = 10
         # print(self.episode_num)
         self.train_flag = False
         self.padding_data = 3
@@ -183,65 +183,23 @@ class nav_cloning_node:
         #     self.dl.load(self.load_path)
         #     print("load model",self.load_path)
         
-        # if self.episode == self.episode_num:
-        #     self.learning = False
-        #     self.dl.save(self.save_path)
-        #     #self.dl.load(self.load_path)
+        if self.episode == self.episode_num:
+            self.learning = False
+            self.dl.save(self.save_path)
+            x_cat, c_cat, t_cat = self.dl.call_dataset()
+            self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
+            self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
+            self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
+            #self.dl.load(self.load_path)
         # if self.episode == self.episode_num+10000:
-        #     os.system('killall roslaunch')
-        #     sys.exit()
+            os.system('killall roslaunch')
+            sys.exit()
 
         if self.learning:
             target_action = self.action
             distance = self.min_distance
 
-            if self.mode == "manual":
-                if distance > 0.1:
-                    self.select_dl = False
-                elif distance < 0.05:
-                    self.select_dl = True
-                if self.select_dl and self.episode >= 0:
-                    target_action = 0
-                action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, target_action)
-                if abs(target_action) < 0.1:
-                    action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, target_action - 0.2)
-                    action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, target_action + 0.2)
-                angle_error = abs(action - target_action)
-
-            elif self.mode == "zigzag":
-                action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, target_action)
-                if abs(target_action) < 0.1:
-                    action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, target_action - 0.2)
-                    action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, target_action + 0.2)
-                angle_error = abs(action - target_action)
-                if distance > 0.1:
-                    self.select_dl = False
-                elif distance < 0.05:
-                    self.select_dl = True
-                if self.select_dl and self.episode >= 0:
-                    target_action = 0
-
-            elif self.mode == "use_dl_output":
-                action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, target_action)
-                if abs(target_action) < 0.1:
-                    action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, target_action - 0.2)
-                    action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, target_action + 0.2)
-                angle_error = abs(action - target_action)
-                if distance > 0.1:
-                    self.select_dl = False
-                elif distance < 0.05:
-                    self.select_dl = True
-                if self.select_dl and self.episode >= 0:
-                    target_action = action
-
-            elif self.mode == "follow_line":
-                action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, target_action)
-                if abs(target_action) < 0.2:#0.1
-                    action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, target_action - 0.2)
-                    action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, target_action + 0.2)
-                angle_error = abs(action - target_action)
-
-            elif self.mode == "selected_training":
+            if self.mode == "selected_training":
                 action = self.dl.act(img, self.cmd_dir_data)
                 angle_error = abs(action - target_action)
                 loss = 0
@@ -292,10 +250,10 @@ class nav_cloning_node:
 
             print(str(self.episode) + ", training, loss: " + str(loss) + ", angle_error: " + str(angle_error) + ", distance: " + str(distance) + ", self.cmd_dir_data: " + str(self.cmd_dir_data))
             self.episode += 1
-            #line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the), str(self.cmd_dir_data)]
-            #with open(self.path + self.start_time + '/' + 'training.csv', 'a') as f:
-            #    writer = csv.writer(f, lineterminator='\n')
-            #    writer.writerow(line)
+            line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the), str(self.cmd_dir_data)]
+            with open(self.path + self.start_time + '/' + 'training.csv', 'a') as f:
+               writer = csv.writer(f, lineterminator='\n')
+               writer.writerow(line)
             self.vel.linear.x = 0.2
             self.vel.angular.z = target_action
             self.nav_pub.publish(self.vel)
