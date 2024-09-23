@@ -7,6 +7,7 @@ import matplotlib as plt
 import os
 import time
 from os.path import expanduser
+from tqdm.auto import tqdm
 
 
 import torch
@@ -94,7 +95,7 @@ class deep_learning:
         # tensor device choiece
         self.device = torch.device(
             'cuda:0' if torch.cuda.is_available() else 'cpu')
-        torch.manual_seed(0)
+        # torch.manual_seed(0)
         self.net = Net(n_channel, n_action)
         self.net.to(self.device)
         print(self.device)
@@ -106,7 +107,6 @@ class deep_learning:
         self.n_action = n_action
         self.count = 0
         self.on_count = 0
-
         self.accuracy = 0
         self.loss_all =0.0
         self.results_train = {}
@@ -126,9 +126,9 @@ class deep_learning:
         x_tensor = torch.load(image_path)
         c_tensor = torch.load(dir_path)
         t_tensor = torch.load(vel_path)
-        print("load_image:",x_tensor.shape)
-        print("load_dir:",c_tensor.shape)
-        print("load_vel:",t_tensor.shape)
+        print("load_image:", x_tensor.shape)
+        print("load_dir:", c_tensor.shape)
+        print("load_vel:", t_tensor.shape)
         dataset = TensorDataset(x_tensor, c_tensor, t_tensor)
         return dataset
 
@@ -138,12 +138,14 @@ class deep_learning:
         # <Training mode>
         self.net.train()
         # <dataloder>
-        train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
-            'cpu').manual_seed(0), shuffle=True)
+        # train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
+            # 'cpu').manual_seed(0), shuffle=True)
+        train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE,
+        shuffle=True)
 
         for epoch in range(EPOCH):
             self.loss_all = 0.0
-            for x_tensor, c_tensor, t_tensor in train_dataset:
+            for x_tensor, c_tensor, t_tensor in tqdm(train_dataset):
                 x_tensor = x_tensor.to(self.device, non_blocking=True)
                 c_tensor = c_tensor.to(self.device, non_blocking=True)
                 t_tensor = t_tensor.to(self.device, non_blocking=True)
@@ -164,10 +166,6 @@ class deep_learning:
             average_loss = self.loss_all / len(train_dataset)
             print(f"Epoch {epoch+1}, Average Loss: {average_loss:.4f}")
         return average_loss
-
-    def result(self):
-        accuracy = self.accuracy
-        return accuracy
 
     def save(self, save_path):
         # <model save>
