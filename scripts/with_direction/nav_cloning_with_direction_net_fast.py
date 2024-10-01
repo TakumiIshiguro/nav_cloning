@@ -148,10 +148,6 @@ class deep_learning:
                          device=self.device).unsqueeze(0)
 
         self.max_freq = max(self.max_freq, self.direction_counter[tuple(dir_cmd)])
-
-        for direction, count in self.direction_counter.items():
-            print(f"Direction {direction}: {count}")
-
         current_freq = self.direction_counter[tuple(dir_cmd)]
         if current_freq > 0:
             factor = ((self.max_freq + current_freq - 1) // current_freq)**2
@@ -165,8 +161,21 @@ class deep_learning:
             self.x_cat = torch.cat([self.x_cat, x], dim=0)
             self.c_cat = torch.cat([self.c_cat, c], dim=0)
             self.t_cat = torch.cat([self.t_cat, t], dim=0)
-
+        
         self.direction_counter[tuple(dir_cmd)] += factor
+        
+        # if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
+        #     for i in range(PADDING_DATA):
+        #         self.x_cat = torch.cat([self.x_cat, x], dim=0)
+        #         self.c_cat = torch.cat([self.c_cat, c], dim=0)
+        #         self.t_cat = torch.cat([self.t_cat, t], dim=0)
+        #     print("Padding data!!!!!")
+        #     self.direction_counter[tuple(dir_cmd)] += 7
+        # else:
+        #     self.x_cat = torch.cat([self.x_cat, x], dim=0)
+        #     self.c_cat = torch.cat([self.c_cat, c], dim=0)
+        #     self.t_cat = torch.cat([self.t_cat, t], dim=0)
+        #     self.direction_counter[tuple(dir_cmd)] += 1
         # <make dataset>
         dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
         # <dataloader>
@@ -198,6 +207,9 @@ class deep_learning:
         self.optimizer.step()
         # self.writer.add_scalar("on_loss", loss_on, self.on_count)
         # self.on_count +=1
+        for direction, count in self.direction_counter.items():
+            print(f"Direction {direction}: {count}")
+
         return self.loss_all
 
     def act_and_trains(self, img, dir_cmd, train_dataset):
@@ -234,6 +246,8 @@ class deep_learning:
         # self.writer.add_scalar("loss", self.loss_all, self.count)
         # self.count += 1
         #print("action=" ,action_value_training[0][0].item() ,"loss=" ,loss.item())
+        for direction, count in self.direction_counter.items():
+            print(f"Direction {direction}: {count}")
         return action_value_training[0][0].item(), self.loss_all
 
     def act(self, img, dir_cmd):
