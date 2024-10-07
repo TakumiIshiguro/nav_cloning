@@ -36,9 +36,9 @@ class nav_cloning_node:
         self.action_num = 1
         self.dl = deep_learning(n_action = self.action_num)
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
-        self.image_left_sub = rospy.Subscriber("/camera_left/rgb/image_raw", Image, self.callback_left_camera)
-        self.image_right_sub = rospy.Subscriber("/camera_right/rgb/image_raw", Image, self.callback_right_camera)
+        self.image_sub = rospy.Subscriber("/camera/image_raw", Image, self.callback)
+        self.image_left_sub = rospy.Subscriber("/camera_left/image_raw", Image, self.callback_left_camera)
+        self.image_right_sub = rospy.Subscriber("/camera_right/image_raw", Image, self.callback_right_camera)
         self.vel_sub = rospy.Subscriber("/nav_vel", Twist, self.callback_vel)
         self.action_pub = rospy.Publisher("action", Int8, queue_size=1)
         self.nav_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -75,7 +75,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num =4000
+        self.episode_num =2000
         self.target_dataset = 8500
         self.train_flag = False
         self.padding_data = 3
@@ -192,7 +192,8 @@ class nav_cloning_node:
             self.learning = False
             # self.dl.save(self.save_path)
             #self.dl.load(self.load_path)
-        if self.episode == self.episode_num+2000:
+        # willow
+        if self.episode == self.episode_num+1800:
             os.system('killall roslaunch')
             sys.exit()
 

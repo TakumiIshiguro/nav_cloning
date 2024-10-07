@@ -23,8 +23,7 @@ from torch.utils.tensorboard import SummaryWriter
 from yaml import load
 
 # HYPER PARAM
-MAX_DATA = 10000
-EPOCH =20
+BATCH_SIZE = 8
 BRANCH = 3
 
 class Net(nn.Module):
@@ -83,7 +82,7 @@ class Net(nn.Module):
         img_out = self.cnn_layer(x) 
         fc_out = self.fc_layer(img_out)  
         batch_size = x.size(0)
-        print(batch_size)
+        # print(batch_size)
         output_str = torch.zeros(batch_size, 1, device=fc_out.device)
         output_left = torch.zeros(batch_size, 1, device=fc_out.device)
         output_right = torch.zeros(batch_size, 1, device=fc_out.device)
@@ -100,7 +99,7 @@ class Net(nn.Module):
                 output_right[i] = self.branch[2](fc_right)
 
         output = torch.stack([output_str, output_left, output_right])
-        print(output)    
+        # print(output)    
         return output
 
 class deep_learning:
