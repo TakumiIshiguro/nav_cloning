@@ -100,6 +100,9 @@ class deep_learning:
         self.totensor = transforms.ToTensor()
         self.transform_color = transforms.ColorJitter(
             brightness=0.25, contrast=0.25, saturation=0.25)
+        self.random_erasing = transforms.RandomErasing(
+            p=0.1, scale=(0.02, 0.09), ratio=(0.3, 3.3), value='random'
+        )
         self.n_action = n_action
         self.count = 0
         self.on_count = 0
@@ -223,8 +226,11 @@ class deep_learning:
             c_train.to(self.device, non_blocking=True)
             t_train.to(self.device, non_blocking=True)
             break
+            
     # <use data augmentation>
-       # x_train = self.transform_color(x_train)
+        x_train = self.transform_color(x_train)
+        x_train = self.random_erasing(x_train)
+
     # <learning>
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)

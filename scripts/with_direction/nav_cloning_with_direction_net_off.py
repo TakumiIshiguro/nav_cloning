@@ -27,7 +27,7 @@ from yaml import load
 # HYPER PARAM
 BATCH_SIZE = 64
 MAX_DATA = 10000
-EPOCH = 80
+EPOCH = 100
 PADDING_DATA = 7 #3
 
 
@@ -104,6 +104,9 @@ class deep_learning:
         self.totensor = transforms.ToTensor()
         self.transform_color = transforms.ColorJitter(
             brightness=0.25, contrast=0.25, saturation=0.25)
+        self.random_erasing = transforms.RandomErasing(
+            p=0.1, scale=(0.02, 0.09), ratio=(0.3, 3.3), value='random'
+        )
         self.n_action = n_action
         self.count = 0
         self.on_count = 0
@@ -151,7 +154,8 @@ class deep_learning:
                 t_tensor = t_tensor.to(self.device, non_blocking=True)
 
             # <use data augmentation>
-                # x_tensor = self.transform_color(x_tensor)
+                x_tensor = self.transform_color(x_tensor)
+                x_tensor = self.random_erasing(x_tensor)
             # <learning>
                 self.optimizer.zero_grad()
                 y_tensor = self.net(x_tensor, c_tensor)
