@@ -20,6 +20,7 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from collections import Counter
 from yaml import load
 
 
@@ -99,11 +100,15 @@ class deep_learning:
         self.totensor = transforms.ToTensor()
         self.transform_color = transforms.ColorJitter(
             brightness=0.25, contrast=0.25, saturation=0.25)
+        self.random_erasing = transforms.RandomErasing(
+            p=0.1, scale=(0.02, 0.09), ratio=(0.3, 3.3), value='random'
+        )
         self.n_action = n_action
         self.count = 0
         self.on_count = 0
         self.accuracy = 0
         self.loss_all =0.0
+        self.max_freq = 0
         self.results_train = {}
         self.results_train['loss'], self.results_train['accuracy'] = [], []
         self.loss_list = []
@@ -114,6 +119,7 @@ class deep_learning:
         self.criterion = nn.MSELoss()
         self.transform = transforms.Compose([transforms.ToTensor()])
         self.first_flag = True
+        self.direction_counter = Counter()
         torch.backends.cudnn.benchmark = False
         # self.writer = SummaryWriter(log_dir='/home/orne_beta/haruyama_ws/src/nav_cloning/runs')
 
@@ -132,18 +138,9 @@ class deep_learning:
                 dir_cmd, dtype=torch.float32, device=self.device).unsqueeze(0)
             self.t_cat = torch.tensor(
                 [target_angle], dtype=torch.float32, device=self.device).unsqueeze(0)
-            # filename = "zihanki_migi"
-            # image_path = '/home/orne_beta/haruyama_ws/src/nav_cloning/data/dataset_with_dir_selected_training/pytorch/image/'+filename+'/image.pt'
-            # dir_path = '/home/orne_beta/haruyama_ws/src/nav_cloning/data/dataset_with_dir_selected_training/pytorch/dir/'+filename+'/dir.pt'
-            # vel_path = '/home/orne_beta/haruyama_ws/src/nav_cloning/data/dataset_with_dir_selected_training/pytorch/vel/'+filename+'/vel.pt'
-            # self.x_cat = torch.load(image_path)
-            # self.c_cat = torch.load(dir_path)
-            # self.t_cat = torch.load(vel_path)
-            # print("x_shape:",self.x_cat.shape)
-            # print("c_shape:",self.x_cat.shape)
-            # print("t_shape:",self.t_cat.shape)
+            self.direction_counter[tuple(dir_cmd)] += 1
             self.first_flag = False
-        # <To tensor img(x),cmd(c),angle(t)>
+        # <To tensor img(x), cmd(c), angle(t)>
         x = torch.tensor(img, dtype=torch.float32,
                          device=self.device).unsqueeze(0)
         # <(Batch,H,W,Channel) -> (Batch ,Channel, H,W)>
@@ -152,25 +149,43 @@ class deep_learning:
                          device=self.device).unsqueeze(0)
         t = torch.tensor([target_angle], dtype=torch.float32,
                          device=self.device).unsqueeze(0)
-        if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
-            for i in range(PADDING_DATA):
-                self.x_cat = torch.cat([self.x_cat, x], dim=0)
-                self.c_cat = torch.cat([self.c_cat, c], dim=0)
-                self.t_cat = torch.cat([self.t_cat, t], dim=0)
-            print("Padding data!!!!!")
+
+        self.max_freq = max(self.max_freq, self.direction_counter[tuple(dir_cmd)])
+        current_freq = self.direction_counter[tuple(dir_cmd)]
+        if current_freq > 0:
+            factor = ((self.max_freq + current_freq - 1) // current_freq)**2
         else:
+            factor = 1
+
+        if factor > 9:
+            factor = 9
+
+        for i in range(factor):
             self.x_cat = torch.cat([self.x_cat, x], dim=0)
             self.c_cat = torch.cat([self.c_cat, c], dim=0)
             self.t_cat = torch.cat([self.t_cat, t], dim=0)
-
+        
+        self.direction_counter[tuple(dir_cmd)] += factor
+        
+        # if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
+        #     for i in range(PADDING_DATA):
+        #         self.x_cat = torch.cat([self.x_cat, x], dim=0)
+        #         self.c_cat = torch.cat([self.c_cat, c], dim=0)
+        #         self.t_cat = torch.cat([self.t_cat, t], dim=0)
+        #     print("Padding data!!!!!")
+        #     self.direction_counter[tuple(dir_cmd)] += 7
+        # else:
+        #     self.x_cat = torch.cat([self.x_cat, x], dim=0)
+        #     self.c_cat = torch.cat([self.c_cat, c], dim=0)
+        #     self.t_cat = torch.cat([self.t_cat, t], dim=0)
+        #     self.direction_counter[tuple(dir_cmd)] += 1
         # <make dataset>
-        #print("train x =",x.shape,x.device,"train c =" ,c.shape,c.device,"tarain t = " ,t.shape,t.device)
         dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
-        # <dataloder>
+        # <dataloader>
         train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
             'cpu').manual_seed(0), shuffle=True)
-        print("dataset_num:",len(dataset))
-        return dataset,len(dataset) ,train_dataset
+        print("dataset_num:", len(dataset))
+        return dataset, len(dataset), train_dataset
     
     def trains(self):
         if self.first_flag:
@@ -195,6 +210,9 @@ class deep_learning:
         self.optimizer.step()
         # self.writer.add_scalar("on_loss", loss_on, self.on_count)
         # self.on_count +=1
+        for direction, count in self.direction_counter.items():
+            print(f"Direction {direction}: {count}")
+
         return self.loss_all
 
     def act_and_trains(self, img, dir_cmd, train_dataset):
@@ -208,8 +226,11 @@ class deep_learning:
             c_train.to(self.device, non_blocking=True)
             t_train.to(self.device, non_blocking=True)
             break
+            
     # <use data augmentation>
-       # x_train = self.transform_color(x_train)
+        x_train = self.transform_color(x_train)
+        x_train = self.random_erasing(x_train)
+
     # <learning>
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
@@ -231,6 +252,8 @@ class deep_learning:
         # self.writer.add_scalar("loss", self.loss_all, self.count)
         # self.count += 1
         #print("action=" ,action_value_training[0][0].item() ,"loss=" ,loss.item())
+        for direction, count in self.direction_counter.items():
+            print(f"Direction {direction}: {count}")
         return action_value_training[0][0].item(), self.loss_all
 
     def act(self, img, dir_cmd):
