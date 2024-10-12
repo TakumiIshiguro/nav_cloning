@@ -160,34 +160,36 @@ class deep_learning:
         if factor > 9:
             factor = 9
 
-        for i in range(factor):
-            self.x_cat = torch.cat([self.x_cat, x], dim=0)
-            self.c_cat = torch.cat([self.c_cat, c], dim=0)
-            self.t_cat = torch.cat([self.t_cat, t], dim=0)
-        
-        self.direction_counter[tuple(dir_cmd)] += factor
-        
-        # if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
-        #     for i in range(PADDING_DATA):
-        #         self.x_cat = torch.cat([self.x_cat, x], dim=0)
-        #         self.c_cat = torch.cat([self.c_cat, c], dim=0)
-        #         self.t_cat = torch.cat([self.t_cat, t], dim=0)
-        #     print("Padding data!!!!!")
-        #     self.direction_counter[tuple(dir_cmd)] += 7
-        # else:
+        # for i in range(factor):
         #     self.x_cat = torch.cat([self.x_cat, x], dim=0)
         #     self.c_cat = torch.cat([self.c_cat, c], dim=0)
         #     self.t_cat = torch.cat([self.t_cat, t], dim=0)
-        #     self.direction_counter[tuple(dir_cmd)] += 1
+        
+        # self.direction_counter[tuple(dir_cmd)] += factor
+        
+        if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
+            for i in range(PADDING_DATA):
+                self.x_cat = torch.cat([self.x_cat, x], dim=0)
+                self.c_cat = torch.cat([self.c_cat, c], dim=0)
+                self.t_cat = torch.cat([self.t_cat, t], dim=0)
+            print("Padding Data")
+            self.direction_counter[tuple(dir_cmd)] += 7
+        else:
+            self.x_cat = torch.cat([self.x_cat, x], dim=0)
+            self.c_cat = torch.cat([self.c_cat, c], dim=0)
+            self.t_cat = torch.cat([self.t_cat, t], dim=0)
+            self.direction_counter[tuple(dir_cmd)] += 1
+
         # <make dataset>
         dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
         # <dataloader>
         train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
             'cpu').manual_seed(0), shuffle=True)
         print("dataset_num:", len(dataset))
+
         return dataset, len(dataset), train_dataset
     
-    def trains(self):
+    def trains(self, iteration):
         if self.first_flag:
             return
         #self.device = torch.device('cuda')
@@ -196,24 +198,21 @@ class deep_learning:
         dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
         train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
             'cpu').manual_seed(0), shuffle=True)
-        for x_train, c_train, t_train in train_dataset:
-            x_train.to(self.device, non_blocking=True)
-            c_train.to(self.device, non_blocking=True)
-            t_train.to(self.device, non_blocking=True)
-            break
+        for i in range(iteration):
+            for x_train, c_train, t_train in train_dataset:
+                x_train.to(self.device, non_blocking=True)
+                c_train.to(self.device, non_blocking=True)
+                t_train.to(self.device, non_blocking=True)
+                break
             
-        self.optimizer.zero_grad()
-        y_train = self.net(x_train, c_train)
-        loss = self.criterion(y_train, t_train)
-        loss.backward()
-        self.loss_all = loss.item()
-        self.optimizer.step()
-        # self.writer.add_scalar("on_loss", loss_on, self.on_count)
-        # self.on_count +=1
-        for direction, count in self.direction_counter.items():
-            print(f"Direction {direction}: {count}")
-
-        return self.loss_all
+            self.optimizer.zero_grad()
+            y_train = self.net(x_train, c_train)
+            loss = self.criterion(y_train, t_train)
+            loss.backward()
+            self.loss_all = loss.item()
+            self.optimizer.step()
+            # self.writer.add_scalar("on_loss", loss_on, self.on_count)
+            # self.on_count +=1
 
     def act_and_trains(self, img, dir_cmd, train_dataset):
         # self.device = torch.device('cuda')
@@ -252,8 +251,6 @@ class deep_learning:
         # self.writer.add_scalar("loss", self.loss_all, self.count)
         # self.count += 1
         #print("action=" ,action_value_training[0][0].item() ,"loss=" ,loss.item())
-        for direction, count in self.direction_counter.items():
-            print(f"Direction {direction}: {count}")
         return action_value_training[0][0].item(), self.loss_all
 
     def act(self, img, dir_cmd):
@@ -269,6 +266,9 @@ class deep_learning:
         action_value_test = self.net(x_test_ten, c_test)
 
         #print("act = " ,action_value_test.item())
+        for direction, count in self.direction_counter.items():
+            print(f"Direction {direction}: {count}")
+
         return action_value_test[0][0].item()
 
     def result(self):

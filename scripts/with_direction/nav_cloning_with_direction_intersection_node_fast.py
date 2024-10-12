@@ -65,7 +65,7 @@ class nav_cloning_node:
         self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/'
         self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/offline/7/model.pt'
+        # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/offline/7/model.pt'
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
@@ -177,23 +177,23 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        if self.episode == 0:
-            self.learning = False
-            # self.dl.save(self.save_path)
-            self.dl.load(self.load_path)
-            print("load model",self.load_path)
-        
-        # if self.episode == self.episode_num:
+        # if self.episode == 0:
         #     self.learning = False
-        #     self.dl.save(self.save_path)
-        #     x_cat, c_cat, t_cat = self.dl.call_dataset()
-        #     self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
-        #     self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
-        #     self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
-            #self.dl.load(self.load_path)
-        # if self.episode == self.episode_num+10000:
-            # os.system('killall roslaunch')
-            # sys.exit()
+        #     # self.dl.save(self.save_path)
+        #     self.dl.load(self.load_path)
+        #     print("load model",self.load_path)
+        
+        if self.episode == self.episode_num:
+            self.learning = False
+            self.dl.save(self.save_path)
+            # x_cat, c_cat, t_cat = self.dl.call_dataset()
+            # self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
+            # self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
+            # self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
+            # self.dl.load(self.load_path)
+        if self.episode == self.episode_num+10000:
+            os.system('killall roslaunch')
+            sys.exit()
 
         if self.learning:
             target_action = self.action
@@ -206,33 +206,33 @@ class nav_cloning_node:
 
                 if angle_error > 0.05:
                     # loss = self.dl.trains(img, self.cmd_dir_data, target_action)
-                    dataset , dataset_num, train_dataset = self.dl.make_dataset(img, self.cmd_dir_data, target_action)
+                    dataset, dataset_num, train_dataset = self.dl.make_dataset(img, self.cmd_dir_data, target_action)
                     action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, train_dataset)
                     action = action * 1.5
-                    action = max(min(action, 0.45), -0.45)
+                    action = max(min(action, 0.4), -0.4)
 
-                    if abs(target_action) < 0.2: #0.1 #0.15
+                    if abs(target_action) < 0.1: #0.1 #0.15
                         # loss_left = self.dl.trains(img_left, self.cmd_dir_data, target_action)
-                        dataset , dataset_num, train_dataset = self.dl.make_dataset(img_left, self.cmd_dir_data, target_action-0.2)
-                        action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
+                        dataset, dataset_num, train_dataset = self.dl.make_dataset(img_left, self.cmd_dir_data, target_action - 0.2)
+                        action_left, loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
                         # loss_right = self.dl.trains(img_right, self.cmd_dir_data, target_action)
-                        dataset , dataset_num, train_dataset = self.dl.make_dataset(img_right, self.cmd_dir_data, target_action+0.2)
+                        dataset, dataset_num, train_dataset = self.dl.make_dataset(img_right, self.cmd_dir_data, target_action + 0.2)
                         action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
 
                 else:
-                    loss = self.dl.trains()
+                    loss = self.dl.trains(2)
                     print("online traing")
                                 
-                if self.loop_count_flag:
-                    print("loop count")
-                    self.vel.linear.x = 0.0
-                    self.vel.angular.z = 0.0
-                    self.nav_pub.publish(self.vel)
-                    self.dl.save(self.save_path)
-                    print("Finish learning!!")
-                    self.learning = False                    
-                else:
-                    pass
+                # if self.loop_count_flag:
+                #     print("loop count")
+                #     self.vel.linear.x = 0.0
+                #     self.vel.angular.z = 0.0
+                #     self.nav_pub.publish(self.vel)
+                #     self.dl.save(self.save_path)
+                #     print("Finish learning!!")
+                #     self.learning = False                    
+                # else:
+                #     pass
 
                 if self.cmd_dir_data == (0,1,0) or self.cmd_dir_data == (0,0,1):
                     if distance > 0.05 or angle_error >0.15:
@@ -240,9 +240,9 @@ class nav_cloning_node:
                     else:
                         pass
 
-                if distance > 0.145 or angle_error >0.3:
+                if distance >= 0.145 or angle_error > 0.4:
                     self.select_dl = False
-                elif distance < 0.05:
+                elif distance <= 0.1:
                     self.select_dl = True
                 if self.select_dl and self.episode >= 0:
                     target_action = action

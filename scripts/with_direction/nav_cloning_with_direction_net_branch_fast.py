@@ -172,25 +172,25 @@ class deep_learning:
         if factor > 9:
             factor = 9
 
-        # for i in range(factor):
-        #     self.x_cat = torch.cat([self.x_cat, x], dim=0)
-        #     self.c_cat = torch.cat([self.c_cat, c], dim=0)
-        #     self.t_cat = torch.cat([self.t_cat, t], dim=0)
-        
-        # self.direction_counter[tuple(dir_cmd)] += factor
-        
-        if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
-            for i in range(PADDING_DATA):
-                self.x_cat = torch.cat([self.x_cat, x], dim=0)
-                self.c_cat = torch.cat([self.c_cat, c], dim=0)
-                self.t_cat = torch.cat([self.t_cat, t], dim=0)
-            print("Padding Data")
-            self.direction_counter[tuple(dir_cmd)] += 7
-        else:
+        for i in range(factor):
             self.x_cat = torch.cat([self.x_cat, x], dim=0)
             self.c_cat = torch.cat([self.c_cat, c], dim=0)
             self.t_cat = torch.cat([self.t_cat, t], dim=0)
-            self.direction_counter[tuple(dir_cmd)] += 1
+        
+        self.direction_counter[tuple(dir_cmd)] += factor
+        
+        # if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
+        #     for i in range(PADDING_DATA):
+        #         self.x_cat = torch.cat([self.x_cat, x], dim=0)
+        #         self.c_cat = torch.cat([self.c_cat, c], dim=0)
+        #         self.t_cat = torch.cat([self.t_cat, t], dim=0)
+        #     print("Padding Data")
+        #     self.direction_counter[tuple(dir_cmd)] += 7
+        # else:
+        #     self.x_cat = torch.cat([self.x_cat, x], dim=0)
+        #     self.c_cat = torch.cat([self.c_cat, c], dim=0)
+        #     self.t_cat = torch.cat([self.t_cat, t], dim=0)
+        #     self.direction_counter[tuple(dir_cmd)] += 1
 
         # <make dataset>
         dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
@@ -245,8 +245,6 @@ class deep_learning:
         self.optimizer.step()
         # self.writer.add_scalar("on_loss", loss_on, self.on_count)
         # self.on_count +=1
-        for direction, count in self.direction_counter.items():
-            print(f"Direction {direction}: {count}")
 
         return self.loss_all
 
@@ -284,6 +282,7 @@ class deep_learning:
                               device=self.device).unsqueeze(0)
         action_value_training = self.net(x_act, c_act)
         action_value_training = action_value_training[torch.argmax(c_act)]
+
         return action_value_training.item(), self.loss_all
 
     def act(self, img, dir_cmd):
@@ -297,6 +296,10 @@ class deep_learning:
         # <test phase>
         action_value_test = self.net(x_test_ten, c_test)
         action_value_test = action_value_test[torch.argmax(c_test)]
+
+        for direction, count in self.direction_counter.items():
+            print(f"Direction {direction}: {count}")
+
         return action_value_test.item()
 
     def result(self):

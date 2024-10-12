@@ -65,7 +65,7 @@ class nav_cloning_node:
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_'+str(self.mode)+'/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/'
-        # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/pytorch/branch/add/m/model_gpu.pt'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/2/6/model.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
         #self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_new/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
@@ -131,6 +131,9 @@ class nav_cloning_node:
 
     def callback_cmd(self, data):
         self.cmd_dir_data = data.cmd_dir
+        self.cmd_dir_data = [1, 0, 0]
+        # self.cmd_dir_data = [0, 1, 0]
+        # self.cmd_dir_data = [0, 0, 1]
 
     def callback_vel(self, data):
         self.vel = data
@@ -183,23 +186,23 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        # if self.episode == 0:
-        #     self.learning = True
-        #     #self.dl.save(self.save_path)
-        #     self.dl.load(self.load_path)
-        #     print("load model",self.load_path)
-        
-        if self.episode == self.episode_num:
+        if self.episode == 0:
             self.learning = False
-            self.dl.save(self.save_path)
-            #self.dl.load(self.load_path)
-        # willow
-        # if self.episode == self.episode_num + 1800:
-        # cross
-        # if self.episode == self.episode_num + 400:
-        if self.episode == self.episode_num + 10000:
-            os.system('killall roslaunch')
-            sys.exit()
+            #self.dl.save(self.save_path)
+            self.dl.load(self.load_path)
+            print("load model",self.load_path)
+        
+        # if self.episode == self.episode_num:
+        #     self.learning = False
+        #     self.dl.save(self.save_path)
+        #     #self.dl.load(self.load_path)
+        # # willow
+        # # if self.episode == self.episode_num + 1800:
+        # # cross
+        # # if self.episode == self.episode_num + 400:
+        # if self.episode == self.episode_num + 10000:
+        #     os.system('killall roslaunch')
+        #     sys.exit()
 
         if self.learning:
             target_action = self.action
