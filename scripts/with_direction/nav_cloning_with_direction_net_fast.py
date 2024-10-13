@@ -8,7 +8,8 @@ import os
 import time
 from os.path import expanduser
 
-
+import cv2
+from cv_bridge import CvBridge, CvBridgeError
 import torch
 import torchvision
 import torch.nn as nn
@@ -17,7 +18,7 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 import torch.optim as optim
 import torchvision.datasets as datasets
-import torchvision.transforms as transforms
+import torchvision.transforms.v2 as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from collections import Counter
@@ -98,6 +99,7 @@ class deep_learning:
         self.optimizer = optim.Adam(
             self.net.parameters(), eps=1e-2, weight_decay=5e-4)
         self.totensor = transforms.ToTensor()
+        self.noise = transforms.GaussianNoise()
         self.transform_color = transforms.ColorJitter(
             brightness=0.25, contrast=0.25, saturation=0.25)
         self.random_erasing = transforms.RandomErasing(
@@ -140,6 +142,7 @@ class deep_learning:
                 [target_angle], dtype=torch.float32, device=self.device).unsqueeze(0)
             self.direction_counter[tuple(dir_cmd)] += 1
             self.first_flag = False
+            
         # <To tensor img(x), cmd(c), angle(t)>
         x = torch.tensor(img, dtype=torch.float32,
                          device=self.device).unsqueeze(0)
@@ -227,8 +230,18 @@ class deep_learning:
             break
             
     # <use data augmentation>
-        x_train = self.transform_color(x_train)
-        x_train = self.random_erasing(x_train)
+        # x_train = self.noise(x_train)
+        # x_train = self.transform_color(x_train)
+        # x_train = self.random_erasing(x_train)
+
+        # img_tensor = x_train[0].cpu()  # GPUにある場合はCPUに移動
+        # img_np = img_tensor.permute(1, 2, 0).numpy()  # PyTorch形式（C, H, W）からNumPy形式（H, W, C）に変換
+        # img_np = (img_np * 255).astype('uint8')  # テンソルが正規化されていると仮定し、0-255の範囲にスケーリング
+
+        # img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        # cv2.imshow('Transformed Image', img_cv)
+        # cv2.waitKey(0)  
+        # cv2.destroyAllWindows()
 
     # <learning>
         self.optimizer.zero_grad()
