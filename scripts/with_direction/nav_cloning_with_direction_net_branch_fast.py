@@ -79,6 +79,7 @@ class Net(nn.Module):
                 nn.Linear(256, n_out)
             )for i in range(BRANCH)
         ])
+        
     # forward layer
     def forward(self, x, c):
         img_out = self.cnn_layer(x) 
@@ -164,33 +165,33 @@ class deep_learning:
         self.max_freq = max(self.max_freq, self.direction_counter[tuple(dir_cmd)])
         current_freq = self.direction_counter[tuple(dir_cmd)]
 
-        if current_freq > 0:
-            factor = ((self.max_freq + current_freq - 1) // current_freq)**2
-        else:
-            factor = 1
-
-        if factor > 9:
-            factor = 9
-
-        for i in range(factor):
-            self.x_cat = torch.cat([self.x_cat, x], dim=0)
-            self.c_cat = torch.cat([self.c_cat, c], dim=0)
-            self.t_cat = torch.cat([self.t_cat, t], dim=0)
-        
-        self.direction_counter[tuple(dir_cmd)] += factor
-        
-        # if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
-        #     for i in range(PADDING_DATA):
-        #         self.x_cat = torch.cat([self.x_cat, x], dim=0)
-        #         self.c_cat = torch.cat([self.c_cat, c], dim=0)
-        #         self.t_cat = torch.cat([self.t_cat, t], dim=0)
-        #     print("Padding Data")
-        #     self.direction_counter[tuple(dir_cmd)] += 7
+        # if current_freq > 0:
+        #     factor = ((self.max_freq + current_freq - 1) // current_freq)**2
         # else:
+        #     factor = 1
+
+        # if factor > 9:
+        #     factor = 9
+
+        # for i in range(factor):
         #     self.x_cat = torch.cat([self.x_cat, x], dim=0)
         #     self.c_cat = torch.cat([self.c_cat, c], dim=0)
         #     self.t_cat = torch.cat([self.t_cat, t], dim=0)
-        #     self.direction_counter[tuple(dir_cmd)] += 1
+        
+        # self.direction_counter[tuple(dir_cmd)] += factor
+        
+        if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
+            for i in range(PADDING_DATA):
+                self.x_cat = torch.cat([self.x_cat, x], dim=0)
+                self.c_cat = torch.cat([self.c_cat, c], dim=0)
+                self.t_cat = torch.cat([self.t_cat, t], dim=0)
+            print("Padding Data")
+            self.direction_counter[tuple(dir_cmd)] += 7
+        else:
+            self.x_cat = torch.cat([self.x_cat, x], dim=0)
+            self.c_cat = torch.cat([self.c_cat, c], dim=0)
+            self.t_cat = torch.cat([self.t_cat, t], dim=0)
+            self.direction_counter[tuple(dir_cmd)] += 1
 
         # <make dataset>
         dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
@@ -222,7 +223,7 @@ class deep_learning:
         #MSE
         return torch.sum(loss_function)/BRANCH
 
-    def trains(self):
+    def trains(self, iteration):
         if self.first_flag:
             return
         #self.device = torch.device('cuda')
@@ -231,21 +232,21 @@ class deep_learning:
         dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
         train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
             'cpu').manual_seed(0), shuffle=True)
-        for x_train, c_train, t_train in train_dataset:
-            x_train.to(self.device, non_blocking=True)
-            c_train.to(self.device, non_blocking=True)
-            t_train.to(self.device, non_blocking=True)
-            break
+        for i in range(iteration):
+            for x_train, c_train, t_train in train_dataset:
+                x_train.to(self.device, non_blocking=True)
+                c_train.to(self.device, non_blocking=True)
+                t_train.to(self.device, non_blocking=True)
+                break
             
-        self.optimizer.zero_grad()
-        y_train = self.net(x_train, c_train)
-        loss = self.criterion(y_train, t_train)
-        loss.backward()
-        self.loss_all = loss.item()
-        self.optimizer.step()
-        # self.writer.add_scalar("on_loss", loss_on, self.on_count)
-        # self.on_count +=1
-
+            self.optimizer.zero_grad()
+            y_train = self.net(x_train, c_train)
+            loss = self.criterion(y_train, t_train)
+            loss.backward()
+            self.loss_all = loss.item()
+            self.optimizer.step()
+            # self.writer.add_scalar("on_loss", loss_on, self.on_count)
+            # self.on_count +=1
         return self.loss_all
 
     def act_and_trains(self, img, dir_cmd, train_dataset):

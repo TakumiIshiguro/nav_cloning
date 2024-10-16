@@ -65,7 +65,7 @@ class nav_cloning_node:
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_'+str(self.mode)+'/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/2/6/model.pt'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/2/1/model.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
         #self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_new/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
@@ -131,9 +131,9 @@ class nav_cloning_node:
 
     def callback_cmd(self, data):
         self.cmd_dir_data = data.cmd_dir
-        self.cmd_dir_data = [1, 0, 0]
-        # self.cmd_dir_data = [0, 1, 0]
-        # self.cmd_dir_data = [0, 0, 1]
+    #     self.cmd_dir_data = [1, 0, 0]
+    #     # self.cmd_dir_data = [0, 1, 0]
+    #     # self.cmd_dir_data = [0, 0, 1]
 
     def callback_vel(self, data):
         self.vel = data
@@ -186,23 +186,23 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        if self.episode == 0:
-            self.learning = False
-            #self.dl.save(self.save_path)
-            self.dl.load(self.load_path)
-            print("load model",self.load_path)
-        
-        # if self.episode == self.episode_num:
+        # if self.episode == 0:
         #     self.learning = False
-        #     self.dl.save(self.save_path)
-        #     #self.dl.load(self.load_path)
-        # # willow
-        # # if self.episode == self.episode_num + 1800:
-        # # cross
-        # # if self.episode == self.episode_num + 400:
-        # if self.episode == self.episode_num + 10000:
-        #     os.system('killall roslaunch')
-        #     sys.exit()
+        #     #self.dl.save(self.save_path)
+        #     self.dl.load(self.load_path)
+        #     print("load model",self.load_path)
+        
+        if self.episode == self.episode_num:
+            self.learning = False
+            self.dl.save(self.save_path)
+            #self.dl.load(self.load_path)
+        # willow
+        # if self.episode == self.episode_num + 1800:
+        # cross
+        # if self.episode == self.episode_num + 400:
+        if self.episode == self.episode_num + 10000:
+            os.system('killall roslaunch')
+            sys.exit()
 
         if self.learning:
             target_action = self.action
@@ -217,16 +217,16 @@ class nav_cloning_node:
                     dataset , dataset_num, train_dataset = self.dl.make_dataset(img,self.cmd_dir_data,target_action)
                     action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, train_dataset)
                     action = action * 1.5
-                    action = max(min(action, 0.45), -0.45)
+                    action = max(min(action, 0.4), -0.4)
 
-                    if abs(target_action) < 0.2: #0.1
+                    if abs(target_action) < 0.1: #0.1
                         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_left,self.cmd_dir_data,target_action-0.2)
                         action_left,  loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
                         dataset , dataset_num, train_dataset = self.dl.make_dataset(img_right,self.cmd_dir_data,target_action+0.2)
                         action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
                                 
                 else:
-                    loss = self.dl.trains()
+                    loss = self.dl.trains(2)
                     print("Online Training")
 
                 # if self.loop_count_flag:
@@ -246,9 +246,9 @@ class nav_cloning_node:
                     else:
                         pass
                         
-                if distance > 0.145 or angle_error > 0.3:
+                if distance >= 0.145 or angle_error > 0.4:
                     self.select_dl = False
-                elif distance < 0.05:
+                elif distance <= 0.1:
                     self.select_dl = True
                 if self.select_dl and self.episode >= 0:
                     target_action = action
