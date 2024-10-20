@@ -125,6 +125,16 @@ class deep_learning:
         torch.backends.cudnn.benchmark = False
         # self.writer = SummaryWriter(log_dir='/home/orne_beta/haruyama_ws/src/nav_cloning/runs')
 
+    def load_dataset(self, image_path, dir_path, vel_path):
+        self.x_cat = torch.load(image_path)
+        self.c_cat = torch.load(dir_path)
+        self.t_cat = torch.load(vel_path)
+        print("load_image:", self.x_cat.shape)
+        print("load_dir:", self.c_cat.shape)
+        print("load_vel:", self.t_cat.shape)
+        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
+        self.first_flag = False
+
     def call_dataset(self):
         if self.first_flag:
             return
@@ -153,15 +163,15 @@ class deep_learning:
         t = torch.tensor([target_angle], dtype=torch.float32,
                          device=self.device).unsqueeze(0)
 
-        self.max_freq = max(self.max_freq, self.direction_counter[tuple(dir_cmd)])
-        current_freq = self.direction_counter[tuple(dir_cmd)]
-        if current_freq > 0:
-            factor = ((self.max_freq + current_freq - 1) // current_freq)**2
-        else:
-            factor = 1
+        # self.max_freq = max(self.max_freq, self.direction_counter[tuple(dir_cmd)])
+        # current_freq = self.direction_counter[tuple(dir_cmd)]
+        # if current_freq > 0:
+        #     factor = ((self.max_freq + current_freq - 1) // current_freq)**2
+        # else:
+        #     factor = 1
 
-        if factor > 9:
-            factor = 9
+        # if factor > 9:
+        #     factor = 9
 
         # for i in range(factor):
         #     self.x_cat = torch.cat([self.x_cat, x], dim=0)
@@ -215,7 +225,9 @@ class deep_learning:
             self.loss_all = loss.item()
             self.optimizer.step()
             # self.writer.add_scalar("on_loss", loss_on, self.on_count)
-            # self.on_count +=1
+            self.count +=1
+
+        return self.loss_all
 
     def act_and_trains(self, img, dir_cmd, train_dataset):
         # self.device = torch.device('cuda')
@@ -251,6 +263,7 @@ class deep_learning:
         loss.backward()
         self.loss_all = loss.item() 
         self.optimizer.step()
+        self.count += 1
         # self.writer.add_scalar("loss",loss,self.count)
 
         # <test>
@@ -267,6 +280,7 @@ class deep_learning:
         return action_value_training[0][0].item(), self.loss_all
 
     def act(self, img, dir_cmd):
+        print("count : ", self.count)
         self.net.eval()
         # <make img(x_test_ten),cmd(c_test)>
         x_test_ten = torch.tensor(

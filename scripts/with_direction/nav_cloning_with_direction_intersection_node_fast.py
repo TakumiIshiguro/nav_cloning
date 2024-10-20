@@ -61,27 +61,30 @@ class nav_cloning_node:
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.place = 'cit3f'
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_' + str(self.mode) + '/'
-        self.save_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/'
-        self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/'
-        self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/'
+        self.save_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/image/'
+        self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/dir/'
+        self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/vel/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/'
-        # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/offline/7/model.pt'
+        self.load_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + '10000step' + '/image.pt'
+        self.load_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + '10000step' + '/dir.pt'
+        self.load_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + '10000step' + '/vel.pt'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/1/10/model.pt'
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num = 10000
+        self.episode_num = 60000
         # print(self.episode_num)
         self.train_flag = False
         self.padding_data = 3
         self.start_time_s = rospy.get_time()
         os.makedirs(self.path + self.start_time)
 
-        # with open(self.path + self.start_time + '/' +  'training.csv', 'w') as f:
-        #     writer = csv.writer(f, lineterminator='\n')
-        #     writer.writerow(['step', 'mode', 'loss', 'angle_error(rad)', 'distance(m)','x(m)','y(m)', 'the(rad)', 'direction'])
+        with open(self.path + self.start_time + '/' +  'training.csv', 'w') as f:
+            writer = csv.writer(f, lineterminator='\n')
+            writer.writerow(['step', 'mode', 'loss', 'angle_error(rad)', 'distance(m)','x(m)','y(m)', 'the(rad)', 'direction'])
         self.tracker_sub = rospy.Subscriber("/tracker", Odometry, self.callback_tracker)
 
     def callback(self, data):
@@ -125,6 +128,9 @@ class nav_cloning_node:
 
     def callback_cmd(self, data):
         self.cmd_dir_data = data.cmd_dir
+        self.cmd_dir_data = (1, 0, 0)
+        # self.cmd_dir_data = (0, 1, 0)
+        # self.cmd_dir_data = (0, 0, 1)
 
     def callback_vel(self, data):
         self.vel = data
@@ -177,11 +183,12 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        # if self.episode == 0:
-        #     self.learning = False
-        #     # self.dl.save(self.save_path)
-        #     self.dl.load(self.load_path)
-        #     print("load model",self.load_path)
+        if self.episode == 0:
+            # self.learning = False
+            # self.dl.save(self.save_path)
+            self.dl.load(self.load_path)
+            self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
+            print("load model",self.load_path)
         
         if self.episode == self.episode_num:
             self.learning = False
@@ -191,7 +198,7 @@ class nav_cloning_node:
             # self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
             # self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
             # self.dl.load(self.load_path)
-        if self.episode == self.episode_num+10000:
+        if self.episode == self.episode_num + 10000:
             os.system('killall roslaunch')
             sys.exit()
 
@@ -205,17 +212,14 @@ class nav_cloning_node:
                 loss = 0
 
                 if angle_error > 0.05:
-                    # loss = self.dl.trains(img, self.cmd_dir_data, target_action)
                     dataset, dataset_num, train_dataset = self.dl.make_dataset(img, self.cmd_dir_data, target_action)
                     action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, train_dataset)
                     action = action * 1.5
                     action = max(min(action, 0.4), -0.4)
 
                     if abs(target_action) < 0.1: #0.1 #0.15
-                        # loss_left = self.dl.trains(img_left, self.cmd_dir_data, target_action)
                         dataset, dataset_num, train_dataset = self.dl.make_dataset(img_left, self.cmd_dir_data, target_action - 0.2)
                         action_left, loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
-                        # loss_right = self.dl.trains(img_right, self.cmd_dir_data, target_action)
                         dataset, dataset_num, train_dataset = self.dl.make_dataset(img_right, self.cmd_dir_data, target_action + 0.2)
                         action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
 
