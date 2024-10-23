@@ -75,7 +75,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num = 60000
+        self.episode_num = 10000
         # print(self.episode_num)
         self.train_flag = False
         self.padding_data = 3
@@ -128,7 +128,7 @@ class nav_cloning_node:
 
     def callback_cmd(self, data):
         self.cmd_dir_data = data.cmd_dir
-        self.cmd_dir_data = (1, 0, 0)
+        # self.cmd_dir_data = (1, 0, 0)
         # self.cmd_dir_data = (0, 1, 0)
         # self.cmd_dir_data = (0, 0, 1)
 
@@ -183,21 +183,21 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        if self.episode == 0:
-            # self.learning = False
-            # self.dl.save(self.save_path)
-            self.dl.load(self.load_path)
-            self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
-            print("load model",self.load_path)
+        # if self.episode == 0:
+        #     # self.learning = False
+        #     # self.dl.save(self.save_path)
+        #     self.dl.load(self.load_path)
+        #     self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
+        #     print("load model",self.load_path)
         
         if self.episode == self.episode_num:
             self.learning = False
             self.dl.save(self.save_path)
-            # x_cat, c_cat, t_cat = self.dl.call_dataset()
-            # self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
-            # self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
-            # self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
-            # self.dl.load(self.load_path)
+            x_cat, c_cat, t_cat = self.dl.call_dataset()
+            self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
+            self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
+            self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
+            self.dl.load(self.load_path)
         if self.episode == self.episode_num + 10000:
             os.system('killall roslaunch')
             sys.exit()
