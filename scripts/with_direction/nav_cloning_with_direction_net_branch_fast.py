@@ -180,7 +180,7 @@ class deep_learning:
         
         # self.direction_counter[tuple(dir_cmd)] += factor
         
-        if dir_cmd == (0,1,0) or dir_cmd == (0,0,1):  
+        if dir_cmd == (0, 1, 0) or dir_cmd == (0, 0, 1):  
             for i in range(PADDING_DATA):
                 self.x_cat = torch.cat([self.x_cat, x], dim=0)
                 self.c_cat = torch.cat([self.c_cat, c], dim=0)
@@ -202,6 +202,12 @@ class deep_learning:
         print("dataset_num:", len(dataset))
         return dataset, len(dataset), train_dataset
 
+    def call_dataset(self):
+        if self.first_flag:
+            return
+        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
+        return self.x_cat, self.c_cat, self.t_cat
+
     def loss_branch(self, dir_cmd, target, output):
         #mask command branch [straight, left, straight]
         command_mask = []
@@ -210,18 +216,21 @@ class deep_learning:
         command_mask.append((command == 0).clone().detach().to(torch.float32).to(self.device))
         command_mask.append((command == 1).clone().detach().to(torch.float32).to(self.device))
         command_mask.append((command == 2).clone().detach().to(torch.float32).to(self.device))
-        # print(command_mask)
-        # print(command)
-        # print(output)
+        # print("command_mask:", command_mask)
+        # print("command:", command)
+        # print("output:", output)
+        # print("target:", target)
         loss_branch = []
         loss_function = 0
         for i in range(BRANCH):
-            loss = (output[i] - target) ** 2 * command_mask[i]
+            loss = (output[i] - target) ** 2 * command_mask[i].unsqueeze(1)
+            # print("loss:", loss)
             loss_branch.append(loss)
             # print("loss_branch:", loss_branch[i])
             loss_function += loss_branch[i]
+            # print("loss_function:", loss_function)
         #MSE
-        return torch.sum(loss_function)/BRANCH
+        return torch.sum(loss_function)/BATCH_SIZE
 
     def trains(self, iteration):
         if self.first_flag:
@@ -241,7 +250,9 @@ class deep_learning:
             
             self.optimizer.zero_grad()
             y_train = self.net(x_train, c_train)
-            loss = self.criterion(y_train, t_train)
+            # y_train = y_train[torch.argmax(c_train)]
+            loss = self.loss_branch(c_train, t_train, y_train)
+            # loss = self.criterion(y_train, t_train)
             loss.backward()
             self.loss_all = loss.item()
             self.optimizer.step()
@@ -268,6 +279,7 @@ class deep_learning:
         # <learning>
         self.optimizer.zero_grad()
         y_train = self.net(x_train, c_train)
+        # y_train = y_train[torch.argmax(c_train)]
         # print("y_train=",y_train.shape,"t_train",t_train.shape)
         loss = self.loss_branch(c_train, t_train, y_train)
         # loss = self.criterion(y_train, t_train)
@@ -318,6 +330,11 @@ class deep_learning:
             'loss': self.loss_all,
         }, path + '/model.pt')
         print("save_model")
+
+    def save_tensor(self, input_tensor, path, file_name):
+        os.makedirs(path)
+        torch.save(input_tensor, path + file_name)
+        print("save_dataset_tensor:",)
 
     def load(self, load_path):
         # <model load>

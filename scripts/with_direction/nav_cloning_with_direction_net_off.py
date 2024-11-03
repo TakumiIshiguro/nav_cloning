@@ -26,10 +26,7 @@ from yaml import load
 
 # HYPER PARAM
 BATCH_SIZE = 64
-MAX_DATA = 10000
 EPOCH = 100
-PADDING_DATA = 7 #3
-
 
 class Net(nn.Module):
     def __init__(self, n_channel, n_out):
@@ -154,8 +151,8 @@ class deep_learning:
                 t_tensor = t_tensor.to(self.device, non_blocking=True)
 
             # <use data augmentation>
-                x_tensor = self.transform_color(x_tensor)
-                x_tensor = self.random_erasing(x_tensor)
+                # x_tensor = self.transform_color(x_tensor)
+                # x_tensor = self.random_erasing(x_tensor)
             # <learning>
                 self.optimizer.zero_grad()
                 y_tensor = self.net(x_tensor, c_tensor)

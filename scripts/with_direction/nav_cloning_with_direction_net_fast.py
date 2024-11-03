@@ -260,6 +260,7 @@ class deep_learning:
         y_train = self.net(x_train, c_train)
     # print("y_train=",y_train.shape,"t_train",t_train.shape)
         loss = self.criterion(y_train, t_train)
+        print("loss:", loss)
         loss.backward()
         self.loss_all = loss.item() 
         self.optimizer.step()

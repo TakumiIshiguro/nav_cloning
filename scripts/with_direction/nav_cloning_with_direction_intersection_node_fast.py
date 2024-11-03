@@ -68,14 +68,14 @@ class nav_cloning_node:
         self.load_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + '10000step' + '/image.pt'
         self.load_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + '10000step' + '/dir.pt'
         self.load_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + '10000step' + '/vel.pt'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/1/10/model.pt'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/2/10/model.pt'
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num = 10000
+        self.episode_num = 40000
         # print(self.episode_num)
         self.train_flag = False
         self.padding_data = 3
@@ -184,7 +184,7 @@ class nav_cloning_node:
         ros_time = str(rospy.Time.now())
 
         # if self.episode == 0:
-        #     # self.learning = False
+        #     self.learning = False
         #     # self.dl.save(self.save_path)
         #     self.dl.load(self.load_path)
         #     self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
@@ -193,11 +193,10 @@ class nav_cloning_node:
         if self.episode == self.episode_num:
             self.learning = False
             self.dl.save(self.save_path)
-            x_cat, c_cat, t_cat = self.dl.call_dataset()
-            self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
-            self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
-            self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
-            self.dl.load(self.load_path)
+            # x_cat, c_cat, t_cat = self.dl.call_dataset()
+            # self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
+            # self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
+            # self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
         if self.episode == self.episode_num + 10000:
             os.system('killall roslaunch')
             sys.exit()
@@ -211,7 +210,7 @@ class nav_cloning_node:
                 angle_error = abs(action - target_action)
                 loss = 0
 
-                if angle_error > 0.05:
+                if angle_error > 0.05 and abs(self.action) <= 0.7:
                     dataset, dataset_num, train_dataset = self.dl.make_dataset(img, self.cmd_dir_data, target_action)
                     action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, train_dataset)
                     action = action * 1.5

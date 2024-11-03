@@ -17,14 +17,14 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 import torch.optim as optim
 import torchvision.datasets as datasets
-import torchvision.transforms as transforms
+import torchvision.transforms.v2 as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from yaml import load
 
 # HYPER PARAM
 BATCH_SIZE = 64
-EPOCH = 100
+EPOCH = 50
 BRANCH = 3
 
 class Net(nn.Module):
@@ -115,6 +115,7 @@ class deep_learning:
         self.optimizer = optim.Adam(
             self.net.parameters(), eps=1e-2, weight_decay=5e-4)
         self.totensor = transforms.ToTensor()
+        self.noise = transforms.GaussianNoise()
         self.transform_color = transforms.ColorJitter(
             brightness=0.25, contrast=0.25, saturation=0.25)
         self.random_erasing = transforms.RandomErasing(
@@ -146,18 +147,31 @@ class deep_learning:
         command_mask.append((command == 0).clone().detach().to(torch.float32).to(self.device))
         command_mask.append((command == 1).clone().detach().to(torch.float32).to(self.device))
         command_mask.append((command == 2).clone().detach().to(torch.float32).to(self.device))
-        # print(command_mask)
-        # print(command)
-        # print(output)
+        # print("command_mask:", command_mask)
+        # print("command:", command)
+        # print("output:", output)
+        # print("target:", target)
         loss_branch = []
         loss_function = 0
         for i in range(BRANCH):
-            loss = (output[i] - target) ** 2 * command_mask[i]
+            loss = (output[i] - target) ** 2 * command_mask[i].unsqueeze(1)
+            # print("loss:", loss)
             loss_branch.append(loss)
             # print("loss_branch:", loss_branch[i])
             loss_function += loss_branch[i]
+            # print("loss_function:", loss_function)
         #MSE
-        return torch.sum(loss_function)/BRANCH
+        return torch.sum(loss_function)/BATCH_SIZE
+
+    def load_dataset(self, image_path, dir_path, vel_path):
+        x_tensor = torch.load(image_path)
+        c_tensor = torch.load(dir_path)
+        t_tensor = torch.load(vel_path)
+        print("load_image:", x_tensor.shape)
+        print("load_dir:", c_tensor.shape)
+        print("load_vel:", t_tensor.shape)
+        dataset = TensorDataset(x_tensor, c_tensor, t_tensor)
+        return dataset
 
     def trains(self, dataset):
         #self.device = torch.device('cuda')
@@ -172,27 +186,30 @@ class deep_learning:
 
         for epoch in range(EPOCH):
             self.loss_all = 0.0
+            count = 0
             for x_tensor, c_tensor, t_tensor in tqdm(train_dataset):
                 x_tensor = x_tensor.to(self.device, non_blocking=True)
                 c_tensor = c_tensor.to(self.device, non_blocking=True)
                 t_tensor = t_tensor.to(self.device, non_blocking=True)
-
             # <use data augmentation>
+                # x_tensor = self.noise(x_tensor)
                 # x_tensor = self.transform_color(x_tensor)
                 # x_tensor = self.random_erasing(x_tensor)
             # <learning>
                 self.optimizer.zero_grad()
                 y_tensor = self.net(x_tensor, c_tensor)
             # print("y_train=",y_train.shape,"t_tensor",t_tensor.shape)
-                loss = self.loss_branch(c_train, t_train, y_train)
+                loss = self.loss_branch(c_tensor, t_tensor, y_tensor)
+                # loss = self.criterion(y_tensor, t_tensor)
                 loss.backward()
-                self.loss_all += loss.item()
                 self.optimizer.step()
-                self.writer.add_scalar("loss", self.loss_all, self.count)
-                self.count += 1
+                self.loss_all += loss.item()
+                count += 1
 
-            average_loss = self.loss_all / len(train_dataset)
+            average_loss = self.loss_all / count
+            self.writer.add_scalar("Average Loss per Epoch", average_loss, epoch)
             print(f"Epoch {epoch+1}, Average Loss: {average_loss:.4f}")
+
         return average_loss
 
     def save(self, save_path):

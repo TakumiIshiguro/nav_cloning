@@ -63,9 +63,13 @@ class nav_cloning_node:
         self.select_dl = False
         self.loop_count_flag = False
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
+        self.place = 'cit3f'
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_with_dir_'+str(self.mode)+'/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/2/1/model.pt'
+        self.save_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/image/'
+        self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/dir/'
+        self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/vel/'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/off50/model.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
         #self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_new/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
@@ -76,12 +80,9 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num = 10000
-        self.target_dataset = 8500
+        self.episode_num = 10
         self.train_flag = False
-        self.padding_data = 3
         print(self.episode_num)
-        #self.cmd_dir_data = [0, 0, 0]
         self.start_time_s = rospy.get_time()
         os.makedirs(self.path + self.start_time)
 
@@ -131,9 +132,9 @@ class nav_cloning_node:
 
     def callback_cmd(self, data):
         self.cmd_dir_data = data.cmd_dir
-    #     self.cmd_dir_data = [1, 0, 0]
-    #     # self.cmd_dir_data = [0, 1, 0]
-    #     # self.cmd_dir_data = [0, 0, 1]
+        # self.cmd_dir_data = (1, 0, 0)
+        # self.cmd_dir_data = (0, 1, 0)
+        # self.cmd_dir_data = (0, 0, 1)
 
     def callback_vel(self, data):
         self.vel = data
@@ -195,7 +196,10 @@ class nav_cloning_node:
         if self.episode == self.episode_num:
             self.learning = False
             self.dl.save(self.save_path)
-            #self.dl.load(self.load_path)
+            x_cat, c_cat, t_cat = self.dl.call_dataset()
+            self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
+            self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
+            self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
         # willow
         # if self.episode == self.episode_num + 1800:
         # cross
@@ -241,10 +245,9 @@ class nav_cloning_node:
                 #     pass
 
                 if self.cmd_dir_data == (0, 1, 0) or self.cmd_dir_data == (0, 0, 1):
-                    if distance > 0.05 or angle_error > 0.15:
-                        self.select_dl = False
-                    else:
-                        pass
+                    self.select_dl = False
+                else:
+                    pass
                         
                 if distance >= 0.145 or angle_error > 0.4:
                     self.select_dl = False
