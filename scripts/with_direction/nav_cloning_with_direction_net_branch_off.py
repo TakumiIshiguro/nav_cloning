@@ -15,6 +15,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset, Dataset, random_split
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
+from torchvision.utils import make_grid
 import torch.optim as optim
 import torchvision.datasets as datasets
 import torchvision.transforms.v2 as transforms
@@ -24,7 +25,7 @@ from yaml import load
 
 # HYPER PARAM
 BATCH_SIZE = 64
-EPOCH = 50
+EPOCH = 20
 BRANCH = 3
 
 class Net(nn.Module):
@@ -115,11 +116,11 @@ class deep_learning:
         self.optimizer = optim.Adam(
             self.net.parameters(), eps=1e-2, weight_decay=5e-4)
         self.totensor = transforms.ToTensor()
-        self.noise = transforms.GaussianNoise()
+        self.noise = transforms.GaussianNoise(mean=0.0, sigma=0.05, clip=True)
         self.transform_color = transforms.ColorJitter(
             brightness=0.25, contrast=0.25, saturation=0.25)
         self.random_erasing = transforms.RandomErasing(
-            p=0.1, scale=(0.02, 0.09), ratio=(0.3, 3.3), value='random'
+            p=0.25, scale=(0.02, 0.09), ratio=(0.3, 3.3), value='random'
         )
         self.n_action = n_action
         self.count = 0
@@ -174,27 +175,24 @@ class deep_learning:
         return dataset
 
     def trains(self, dataset):
-        #self.device = torch.device('cuda')
         print(self.device)
-        # <Training mode>
         self.net.train()
-        # <dataloder>
-        # train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
-            # 'cpu').manual_seed(0), shuffle=True)
-        train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE,
-        shuffle=True)
+        train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
         for epoch in range(EPOCH):
             self.loss_all = 0.0
             count = 0
-            for x_tensor, c_tensor, t_tensor in tqdm(train_dataset):
+            for batch_idx, (x_tensor, c_tensor, t_tensor) in enumerate(tqdm(train_dataset)):
                 x_tensor = x_tensor.to(self.device, non_blocking=True)
                 c_tensor = c_tensor.to(self.device, non_blocking=True)
                 t_tensor = t_tensor.to(self.device, non_blocking=True)
             # <use data augmentation>
-                # x_tensor = self.noise(x_tensor)
-                # x_tensor = self.transform_color(x_tensor)
-                # x_tensor = self.random_erasing(x_tensor)
+                x_tensor = self.noise(x_tensor)
+                x_tensor = self.transform_color(x_tensor)
+                x_tensor = self.random_erasing(x_tensor)
+                if batch_idx == 0:
+                    grid = make_grid(x_tensor[:8]) 
+                    self.writer.add_image(f"Transformed Images Epoch {epoch+1}", grid, epoch)
             # <learning>
                 self.optimizer.zero_grad()
                 y_tensor = self.net(x_tensor, c_tensor)
