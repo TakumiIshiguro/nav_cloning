@@ -69,7 +69,7 @@ class nav_cloning_node:
         self.save_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/image/'
         self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/dir/'
         self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/vel/'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/off50/model.pt'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/off_mask/1/model.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
         #self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_new/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
@@ -80,7 +80,7 @@ class nav_cloning_node:
         self.pos_the = 0.0
         self.is_started = False
         self.cmd_dir_data = [0, 0, 0]
-        self.episode_num = 10
+        self.episode_num = 10000
         self.train_flag = False
         print(self.episode_num)
         self.start_time_s = rospy.get_time()
@@ -187,23 +187,25 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        # if self.episode == 0:
-        #     self.learning = False
-        #     #self.dl.save(self.save_path)
-        #     self.dl.load(self.load_path)
-        #     print("load model",self.load_path)
+        if self.episode == 0:
+            self.learning = False
+            #self.dl.save(self.save_path)
+            self.dl.load(self.load_path)
+            print("load model",self.load_path)
         
         if self.episode == self.episode_num:
-            self.learning = False
-            self.dl.save(self.save_path)
-            x_cat, c_cat, t_cat = self.dl.call_dataset()
-            self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
-            self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
-            self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
+        #     self.learning = False
+        #     self.dl.save(self.save_path)
+        #     x_cat, c_cat, t_cat = self.dl.call_dataset()
+        #     self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
+        #     self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
+        #     self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
         # willow
         # if self.episode == self.episode_num + 1800:
         # cross
         # if self.episode == self.episode_num + 400:
+            os.system('killall roslaunch')
+            sys.exit()
         if self.episode == self.episode_num + 10000:
             os.system('killall roslaunch')
             sys.exit()
@@ -233,16 +235,19 @@ class nav_cloning_node:
                     loss = self.dl.trains(2)
                     print("Online Training")
 
-                # if self.loop_count_flag:
-                #     print("loop count")
-                #     self.vel.linear.x = 0.0
-                #     self.vel.angular.z = 0.0
-                #     self.nav_pub.publish(self.vel)
-                #     self.dl.save(self.save_path)
-                #     print("Finish learning!!")
-                #     self.learning = False                    
-                # else:
-                #     pass
+                if self.loop_count_flag:
+                    print("loop count")
+                    self.vel.linear.x = 0.0
+                    self.vel.angular.z = 0.0
+                    self.nav_pub.publish(self.vel)
+                    self.learning = False
+                    self.dl.save(self.save_path)
+                    x_cat, c_cat, t_cat = self.dl.call_dataset()
+                    self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
+                    self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
+                    self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')                  
+                else:
+                    pass
 
                 if self.cmd_dir_data == (0, 1, 0) or self.cmd_dir_data == (0, 0, 1):
                     self.select_dl = False

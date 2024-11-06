@@ -25,7 +25,7 @@ from yaml import load
 
 # HYPER PARAM
 BATCH_SIZE = 64
-EPOCH = 20
+EPOCH = 30
 BRANCH = 3
 
 class Net(nn.Module):
@@ -117,10 +117,11 @@ class deep_learning:
             self.net.parameters(), eps=1e-2, weight_decay=5e-4)
         self.totensor = transforms.ToTensor()
         self.noise = transforms.GaussianNoise(mean=0.0, sigma=0.05, clip=True)
+        self.blur = transforms.GaussianBlur(kernel_size=(3, 3), sigma=0.05)
         self.transform_color = transforms.ColorJitter(
             brightness=0.25, contrast=0.25, saturation=0.25)
         self.random_erasing = transforms.RandomErasing(
-            p=0.25, scale=(0.02, 0.09), ratio=(0.3, 3.3), value='random'
+            p=0.25, scale=(0.02, 0.09), ratio=(0.3, 3.3), value= False
         )
         self.n_action = n_action
         self.count = 0
@@ -171,6 +172,18 @@ class deep_learning:
         print("load_image:", x_tensor.shape)
         print("load_dir:", c_tensor.shape)
         print("load_vel:", t_tensor.shape)
+   
+        low_indices = (t_tensor < 0.1).nonzero(as_tuple=True)[0]
+        mask = torch.ones(len(t_tensor), dtype=bool)
+        mask[low_indices[::3]] = False
+
+        x_tensor = x_tensor[mask]
+        c_tensor = c_tensor[mask]
+        t_tensor = t_tensor[mask]
+        print("mask_image:", x_tensor.shape)
+        print("mask_dir:", c_tensor.shape)
+        print("mask_vel:", t_tensor.shape)
+        # dataset = TensorDataset(filtered_x_tensor, filtered_c_tensor, filtered_t_tensor)
         dataset = TensorDataset(x_tensor, c_tensor, t_tensor)
         return dataset
 
@@ -187,12 +200,13 @@ class deep_learning:
                 c_tensor = c_tensor.to(self.device, non_blocking=True)
                 t_tensor = t_tensor.to(self.device, non_blocking=True)
             # <use data augmentation>
-                x_tensor = self.noise(x_tensor)
-                x_tensor = self.transform_color(x_tensor)
-                x_tensor = self.random_erasing(x_tensor)
-                if batch_idx == 0:
-                    grid = make_grid(x_tensor[:8]) 
-                    self.writer.add_image(f"Transformed Images Epoch {epoch+1}", grid, epoch)
+                # x_tensor = self.noise(x_tensor)
+                # x_tensor = self.blur(x_tensor)
+                # x_tensor = self.transform_color(x_tensor)
+                # x_tensor = self.random_erasing(x_tensor)
+                # if batch_idx == 0:
+                #     grid = make_grid(x_tensor[:8]) 
+                #     self.writer.add_image(f"Transformed Images Epoch {epoch+1}", grid, epoch)
             # <learning>
                 self.optimizer.zero_grad()
                 y_tensor = self.net(x_tensor, c_tensor)
