@@ -70,6 +70,9 @@ class nav_cloning_node:
         self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/dir/'
         self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/vel/'
         self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/off_mask/1/model.pt'
+        self.load_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old10000' + '/image' + '/image.pt'
+        self.load_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old10000' + '/dir' + '/dir.pt'
+        self.load_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old10000' + '/vel' + '/vel.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/v2_test120000/model_gpu.pt'
         #self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_new/model_gpu.pt'
         # self.load_path= '/home/rdclab/catkin_ws/src/nav_cloning/data/model_with_dir_selected_training/pytorch/off_branch/model_gpu.pt'
@@ -189,8 +192,8 @@ class nav_cloning_node:
 
         if self.episode == 0:
             self.learning = False
-            #self.dl.save(self.save_path)
-            self.dl.load(self.load_path)
+            dataset = self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
+            self.dl.load(self.load_path)            
             print("load model",self.load_path)
         
         if self.episode == self.episode_num:

@@ -139,6 +139,22 @@ class deep_learning:
         torch.backends.cudnn.benchmark = False
         # self.writer = SummaryWriter(log_dir='/home/takumi/catkin_ws/src/nav_cloning/runs')
 
+    def load_dataset(self, image_path, dir_path, vel_path):
+        self.x_cat = torch.load(image_path)
+        self.c_cat = torch.load(dir_path)
+        self.t_cat = torch.load(vel_path)
+        print("load_image:", self.x_cat.shape)
+        print("load_dir:", self.c_cat.shape)
+        print("load_vel:", self.t_cat.shape)
+        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
+        self.first_flag = False
+
+    def call_dataset(self):
+        if self.first_flag:
+            return
+        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
+        return self.x_cat, self.c_cat, self.t_cat
+        
     def make_dataset(self,img, dir_cmd, target_angle):        
         if self.first_flag:
             self.x_cat = torch.tensor(
@@ -201,12 +217,6 @@ class deep_learning:
 
         print("dataset_num:", len(dataset))
         return dataset, len(dataset), train_dataset
-
-    def call_dataset(self):
-        if self.first_flag:
-            return
-        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
-        return self.x_cat, self.c_cat, self.t_cat
 
     def loss_branch(self, dir_cmd, target, output):
         #mask command branch [straight, left, straight]
