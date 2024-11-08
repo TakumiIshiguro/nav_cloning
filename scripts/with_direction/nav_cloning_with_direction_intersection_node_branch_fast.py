@@ -190,13 +190,13 @@ class nav_cloning_node:
         # cmd_dir = np.asanyarray(self.cmd_dir_data)
         ros_time = str(rospy.Time.now())
 
-        if self.episode == 0:
-            self.learning = False
-            dataset = self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
-            self.dl.load(self.load_path)            
-            print("load model",self.load_path)
+        # if self.episode == 0:
+            # self.learning = False
+            # dataset = self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
+            # self.dl.load(self.load_path)            
+            # print("load model",self.load_path)
         
-        if self.episode == self.episode_num:
+        # if self.episode == self.episode_num:
         #     self.learning = False
         #     self.dl.save(self.save_path)
         #     x_cat, c_cat, t_cat = self.dl.call_dataset()
@@ -207,11 +207,11 @@ class nav_cloning_node:
         # if self.episode == self.episode_num + 1800:
         # cross
         # if self.episode == self.episode_num + 400:
-            os.system('killall roslaunch')
-            sys.exit()
-        if self.episode == self.episode_num + 10000:
-            os.system('killall roslaunch')
-            sys.exit()
+            # os.system('killall roslaunch')
+            # sys.exit()
+        # if self.episode == self.episode_num + 10000:
+        #     os.system('killall roslaunch')
+        #     sys.exit()
 
         if self.learning:
             target_action = self.action
