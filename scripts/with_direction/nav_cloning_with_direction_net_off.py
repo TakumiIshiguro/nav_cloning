@@ -26,7 +26,7 @@ from yaml import load
 
 # HYPER PARAM
 BATCH_SIZE = 64
-EPOCH = 100
+EPOCH = 50
 
 class Net(nn.Module):
     def __init__(self, n_channel, n_out):
@@ -99,10 +99,12 @@ class deep_learning:
         self.optimizer = optim.Adam(
             self.net.parameters(), eps=1e-2, weight_decay=5e-4)
         self.totensor = transforms.ToTensor()
+        # self.noise = transforms.GaussianNoise(mean=0.0, sigma=0.05, clip=True)
+        self.blur = transforms.GaussianBlur(kernel_size=(3, 3), sigma=0.05)
         self.transform_color = transforms.ColorJitter(
             brightness=0.25, contrast=0.25, saturation=0.25)
         self.random_erasing = transforms.RandomErasing(
-            p=0.1, scale=(0.02, 0.09), ratio=(0.3, 3.3), value='random'
+            p=0.25, scale=(0.02, 0.09), ratio=(0.3, 3.3), value= False
         )
         self.n_action = n_action
         self.count = 0
@@ -132,41 +134,61 @@ class deep_learning:
         dataset = TensorDataset(x_tensor, c_tensor, t_tensor)
         return dataset
 
-    def trains(self, dataset):
+    def trains(self, dataset, test_dataset):
         #self.device = torch.device('cuda')
         print(self.device)
         # <Training mode>
-        self.net.train()
         # <dataloder>
         # train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
             # 'cpu').manual_seed(0), shuffle=True)
         train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE,
         shuffle=True)
 
+        test_dataset = DataLoader(test_dataset, batch_size=BATCH_SIZE,
+        shuffle=False)
+
         for epoch in range(EPOCH):
+            self.net.train()
             self.loss_all = 0.0
+            count = 0
             for x_tensor, c_tensor, t_tensor in tqdm(train_dataset):
                 x_tensor = x_tensor.to(self.device, non_blocking=True)
                 c_tensor = c_tensor.to(self.device, non_blocking=True)
                 t_tensor = t_tensor.to(self.device, non_blocking=True)
 
             # <use data augmentation>
-                # x_tensor = self.transform_color(x_tensor)
-                # x_tensor = self.random_erasing(x_tensor)
+                # x_tensor = self.noise(x_tensor)
+                x_tensor = self.blur(x_tensor)
+                x_tensor = self.transform_color(x_tensor)
+                x_tensor = self.random_erasing(x_tensor)
             # <learning>
                 self.optimizer.zero_grad()
                 y_tensor = self.net(x_tensor, c_tensor)
             # print("y_train=",y_train.shape,"t_tensor",t_tensor.shape)
                 loss = self.criterion(y_tensor, t_tensor)
                 loss.backward()
-                self.loss_all += loss.item()
                 self.optimizer.step()
-                self.writer.add_scalar("loss", self.loss_all, self.count)
-                self.count += 1
+                self.loss_all += loss.item()
+                count += 1
 
-            average_loss = self.loss_all / len(train_dataset)
+            average_loss = self.loss_all / count
+            self.writer.add_scalar("Average Loss per Epoch", average_loss, epoch)
             print(f"Epoch {epoch+1}, Average Loss: {average_loss:.4f}")
-        return average_loss
+
+            self.net.eval()
+            self.loss_test_all = 0.0
+            for x_test, c_test, t_test in tqdm(test_dataset):
+                x_test = x_test.to(self.device, non_blocking=True)
+                c_test = c_test.to(self.device, non_blocking=True)
+                t_test = t_test.to(self.device, non_blocking=True)
+
+                y_test = self.net(x_test, c_test)
+                loss_test = self.criterion(y_test, t_test)
+                self.loss_test_all += loss_test.item()
+
+            average_loss_test = self.loss_test_all / count
+            self.writer.add_scalar("Average Test Loss per Epoch", average_loss_test, epoch)
+            print(f"Epoch {epoch+1}, Test Loss: {average_loss_test:.4f}")
 
     def save(self, save_path):
         # <model save>

@@ -61,11 +61,14 @@ class nav_cloning_node:
         self.save_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/image.pt'
         self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/dir.pt'
         self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/vel.pt'
-        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/'
+        self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/offline/'
         # self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_' + str(self.mode) + '/cit3f/direction/1/model.pt'
-        self.load_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old20000' + '/image' + '/image.pt'
-        self.load_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old20000' + '/dir' + '/dir.pt'
-        self.load_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old20000' + '/vel' + '/vel.pt'
+        self.load_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'route_8' + '/1' + '/image' + '/image.pt'
+        self.load_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'route_8' + '/1' +'/dir' + '/dir.pt'
+        self.load_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'route_8' + '/1' +'/vel' + '/vel.pt'
+        self.test_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'route_8' + '/test' + '/image' + '/image.pt'
+        self.test_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'route_8' + '/test' +'/dir' + '/dir.pt'
+        self.test_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'route_8' + '/test' +'/vel' + '/vel.pt'
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
@@ -168,7 +171,8 @@ class nav_cloning_node:
 
         if self.learning:
             dataset = self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
-            loss = self.dl.trains(dataset)
+            test_dataset = self.dl.load_dataset(self.test_image_path, self.test_dir_path, self.test_vel_path)
+            loss = self.dl.trains(dataset, test_dataset)
             self.dl.save(self.save_path)
             print("Finish learning")
             self.learning = False
