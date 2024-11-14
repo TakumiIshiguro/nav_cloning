@@ -251,17 +251,12 @@ class nav_cloning_node:
                     self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')                  
                 else:
                     pass
-
-                if self.cmd_dir_data == (0, 1, 0) or self.cmd_dir_data == (0, 0, 1):
-                    self.select_dl = False
-                else:
-                    pass
                         
                 if distance >= 0.145 or angle_error > 0.4:
                     self.select_dl = False
                 elif distance <= 0.1:
                     self.select_dl = True
-                if self.select_dl and self.episode >= 0:
+                if self.select_dl and self.episode >= 0 and self.cmd_dir_data == (1, 0, 0):
                     target_action = action
 
             # end mode
