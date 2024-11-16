@@ -214,18 +214,18 @@ class nav_cloning_node:
                 if angle_error > 0.05 and abs(self.action) <= 0.7:
                     dataset, dataset_num, train_dataset = self.dl.make_dataset(img, self.cmd_dir_data, target_action)
                     action, loss = self.dl.act_and_trains(img, self.cmd_dir_data, train_dataset)
-                    dataset, dataset_num, train_dataset = self.dl.make_dataset(img_left, self.cmd_dir_data, target_action - 0.2)
-                    action_left, loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
-                    dataset, dataset_num, train_dataset = self.dl.make_dataset(img_right, self.cmd_dir_data, target_action + 0.2)
-                    action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
+                    # dataset, dataset_num, train_dataset = self.dl.make_dataset(img_left, self.cmd_dir_data, target_action - 0.2)
+                    # action_left, loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
+                    # dataset, dataset_num, train_dataset = self.dl.make_dataset(img_right, self.cmd_dir_data, target_action + 0.2)
+                    # action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
                     action = action * 1.5
                     action = max(min(action, 0.4), -0.4)
 
-                    # if abs(target_action) < 0.1: #0.1 #0.15
-                    #     dataset, dataset_num, train_dataset = self.dl.make_dataset(img_left, self.cmd_dir_data, target_action - 0.2)
-                    #     action_left, loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
-                    #     dataset, dataset_num, train_dataset = self.dl.make_dataset(img_right, self.cmd_dir_data, target_action + 0.2)
-                    #     action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
+                    if abs(target_action) < 0.1: #0.1 #0.15
+                        dataset, dataset_num, train_dataset = self.dl.make_dataset(img_left, self.cmd_dir_data, target_action - 0.2)
+                        action_left, loss_left  = self.dl.act_and_trains(img_left, self.cmd_dir_data, train_dataset)
+                        dataset, dataset_num, train_dataset = self.dl.make_dataset(img_right, self.cmd_dir_data, target_action + 0.2)
+                        action_right, loss_right = self.dl.act_and_trains(img_right, self.cmd_dir_data, train_dataset)
 
                 else:
                     loss = self.dl.trains(2)
@@ -236,11 +236,12 @@ class nav_cloning_node:
                     self.vel.linear.x = 0.0
                     self.vel.angular.z = 0.0
                     self.nav_pub.publish(self.vel)
-                    self.dl.save(self.save_path)
-                    x_cat, c_cat, t_cat = self.dl.call_dataset()
-                    self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
-                    self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
-                    self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt') 
+                    # self.dl.save(self.save_path)
+                    # x_cat, c_cat, t_cat = self.dl.call_dataset()
+                    # self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
+                    # self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
+                    # self.dl.save_tensor(t_cat, self.save_vel_path, '/vel.pt')
+                    self.dl.off_trains() 
                     self.learning = False                 
                 else:
                     pass
