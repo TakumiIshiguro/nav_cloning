@@ -14,3 +14,8 @@ waypoints:
         y: 2.12071
         z: -6.66837e-06
         function: run_right_3_way_center
+    - point:
+        x: -0.465544
+        y: 5.07755
+        z: -6.66837e-06
+        function: run

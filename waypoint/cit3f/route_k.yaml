@@ -10,14 +10,14 @@ waypoints:
         z: 9.61021e-07
         function: run
     - point:
-        x: 14.7774
-        y: 24.6006
+        x: 14.8229
+        y: 24.829
         z: -9.46327e-07
         function: run_left_corner_left
     - point:
-        x: 14.7906
-        y: 14.8385
-        z: -6.66837e-06
+        x: 14.6799
+        y: 14.8361
+        z: -7.62204e-06
         function: run
     - point:
         x: 14.447
@@ -29,13 +29,3 @@ waypoints:
         y: -0.802364
         z: -1.23904e-05
         function: run_left_3_way_center
-    - point:
-        x: 25.3162
-        y: -0.98894
-        z: -8.57572e-06
-        function: run
-    - point:
-        x: 28.4307
-        y: -1.22614
-        z: -8.57572e-06
-        function: run_stop_dead_end

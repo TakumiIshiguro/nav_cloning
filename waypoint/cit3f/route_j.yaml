@@ -1,7 +1,7 @@
 waypoints:
     - point:
-        x: 22.0511
-        y: -1.01378
+        x: 22.0642
+        y: -0.668759
         z: 5.72939e-06
         function: run
     - point:
@@ -30,12 +30,12 @@ waypoints:
         z: 1.9147e-06
         function: run_right_corner_right
     - point:
-        x: 24.9883
-        y: 27.4616
-        z: -9.46327e-07
+        x: 24.0449
+        y: 27.1901
+        z: -2.85368e-06
         function: run
     - point:
-        x: 28.2606
-        y: 27.2757
-        z: 2.86837e-06
+        x: 27.8785
+        y: 27.3855
+        z: 7.34713e-09
         function: run_stop_dead_end
