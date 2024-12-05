@@ -1,7 +1,12 @@
 waypoints:
     - point:
-        x: 1.83386
-        y: -0.170549
+        x: -0.319872
+        y: -1.26011
+        z: -1.9e-06
+        function: run
+    - point:
+        x: 1.83381
+        y: -0.170548
         z: -3.80735e-06
         function: run_right_3_way_right
     - point:
