@@ -53,19 +53,21 @@
     <arg name="cmd_vel_topic" value="/nav_vel"/>
   </include>
 
-  <group unless="$(arg use_waypoint_nav)">
+  <!-- <group unless="$(arg use_waypoint_nav)">
     <node name="waypoints_nav" pkg="fulanghua_waypoints_nav" type="waypoints_nav" output="screen">
       <param name="filename" value="$(arg waypoints_file)"/>
       <param name="dist_err" value="$(arg dist_err)"/>
     </node>
-  </group>
-  <group if="$(arg use_waypoint_nav)">
-    <node name="waypoint_nav" pkg="waypoint_nav" type="waypoint_navigator_with_direction_intersection_detailed" output="screen">
-      <param name="filename" value="$(arg waypoints_file)"/>
-      <param name="dist_err" value="$(arg dist_err)"/>
-      <param name="max_update_rate" value="$(arg rate)"/>
-      <param name="loop_flag" value="$(arg loop)"/>    </node>
-  </group>
+  </group> -->
+  <!-- <group if="$(arg use_waypoint_nav)"> -->
+  <node name="waypoint_nav" pkg="waypoint_nav" type="waypoint_navigator_with_direction_intersection_detailed" output="screen">
+    <param name="filename" value="$(arg waypoints_file)"/>
+    <param name="dist_err" value="$(arg dist_err)"/>
+    <param name="max_update_rate" value="$(arg rate)"/>
+    <param name="loop_flag" value="ture"/>  
+    <param name="target_loop_count" value="1"/>  
+  </node>
+  <!-- </group> -->
 
   <!-- rviz -->
   <group if="$(arg open_rviz)"> 

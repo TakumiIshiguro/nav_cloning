@@ -44,18 +44,18 @@
 
 <!-- Turtlebot3 -->
   <!-- <node pkg="timed_roslaunch" type="timed_roslaunch.sh"
-        args="8 nav_cloning turtlebot3_navigation.launch model:=waffle map_file:=$(find nav_cloning)/maps/$(arg map_file) waypoints_file:=$(find nav_cloning)/waypoint/$(arg waypoints_file) dist_err:=$(arg dist_err) initial_pose_x:=$(arg initial_pose_x) initial_pose_y:=$(arg initial_pose_y) initial_pose_a:=$(arg initial_pose_a) use_waypoint_nav:=$(arg use_waypoint_nav)"
+        args="8 nav_cloning turtlebot3_navigation.launch model:=waffle map_file:=$(find nav_cloning)/maps/$(arg map_file) waypoints_file:=$(find nav_cloning)/waypoint/cit3f/$(arg waypoints_file) dist_err:=$(arg dist_err) initial_pose_x:=$(arg initial_pose_x) initial_pose_y:=$(arg initial_pose_y) initial_pose_a:=$(arg initial_pose_a) use_waypoint_nav:=$(arg use_waypoint_nav)"
         name="timed_roslaunch2" >
   </node> -->
 
 <!-- orne_gamma   -->
   <node pkg="timed_roslaunch" type="timed_roslaunch.sh"
-        args="8 nav_cloning gamma_navigation.launch model:=waffle map_file:=$(find nav_cloning)/maps/$(arg map_file) waypoints_file:=$(find nav_cloning)/waypoint/$(arg waypoints_file) dist_err:=$(arg dist_err) initial_pose_x:=$(arg initial_pose_x) initial_pose_y:=$(arg initial_pose_y) initial_pose_a:=$(arg initial_pose_a) use_waypoint_nav:=$(arg use_waypoint_nav)"
+        args="8 nav_cloning gamma_navigation.launch model:=waffle map_file:=$(find nav_cloning)/maps/$(arg map_file) waypoints_file:=$(find nav_cloning)/waypoint/cit3f/$(arg waypoints_file) dist_err:=$(arg dist_err) initial_pose_x:=$(arg initial_pose_x) initial_pose_y:=$(arg initial_pose_y) initial_pose_a:=$(arg initial_pose_a) use_waypoint_nav:=$(arg use_waypoint_nav)"
         name="timed_roslaunch2" >
   </node>
 
-  <!-- <node pkg="timed_roslaunch" type="timed_roslaunch.sh"
+  <node pkg="timed_roslaunch" type="timed_roslaunch.sh"
         args="20 nav_cloning start_wp_nav.launch"
         name="timed_roslaunch3" >
-  </node> -->
+  </node>
 </launch>
