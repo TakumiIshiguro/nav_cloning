@@ -69,7 +69,7 @@ class nav_cloning_node:
         self.save_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/image/'
         self.save_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/dir/'
         self.save_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + str(self.start_time) + '/vel/'
-        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/off_mask/1/model.pt'
+        self.load_path =roslib.packages.get_pkg_dir('nav_cloning') + '/data/model_with_dir_'+str(self.mode)+'/cit3f/branch/on+off/11/model.pt'
         self.load_image_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old10000' + '/image' + '/image.pt'
         self.load_dir_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old10000' + '/dir' + '/dir.pt'
         self.load_vel_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/dataset_with_dir_' + str(self.mode) + '/' + str(self.place) + '/' + 'old10000' + '/vel' + '/vel.pt'
@@ -191,14 +191,18 @@ class nav_cloning_node:
         ros_time = str(rospy.Time.now())
 
         # if self.episode == 0:
-            # self.learning = False
+        #     self.learning = False
             # dataset = self.dl.load_dataset(self.load_image_path, self.load_dir_path, self.load_vel_path)
             # self.dl.load(self.load_path)            
             # print("load model",self.load_path)
         
-        # if self.episode == self.episode_num:
-        #     self.learning = False
-        #     self.dl.save(self.save_path)
+        if self.episode == self.episode_num:
+            self.vel.linear.x = 0.0
+            self.vel.angular.z = 0.0
+            self.nav_pub.publish(self.vel)
+            self.dl.off_trains() 
+            self.dl.save(self.save_path)
+            self.learning = False
         #     x_cat, c_cat, t_cat = self.dl.call_dataset()
         #     self.dl.save_tensor(x_cat, self.save_image_path, '/image.pt')
         #     self.dl.save_tensor(c_cat, self.save_dir_path, '/dir.pt')
@@ -209,9 +213,9 @@ class nav_cloning_node:
         # if self.episode == self.episode_num + 400:
             # os.system('killall roslaunch')
             # sys.exit()
-        # if self.episode == self.episode_num + 10000:
-        #     os.system('killall roslaunch')
-        #     sys.exit()
+        if self.episode == self.episode_num + 10000:
+            os.system('killall roslaunch')
+            sys.exit()
 
         if self.learning:
             target_action = self.action

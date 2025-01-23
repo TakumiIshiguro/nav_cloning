@@ -22,10 +22,12 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from collections import Counter
 from yaml import load
+from tqdm.auto import tqdm
 
 # HYPER PARAM
 BATCH_SIZE = 8
 BRANCH = 3
+EPOCH = 10
 PADDING_DATA = 7
 
 class Net(nn.Module):
@@ -269,6 +271,45 @@ class deep_learning:
             # self.writer.add_scalar("on_loss", loss_on, self.on_count)
             # self.on_count +=1
         return self.loss_all
+
+    def off_trains(self):
+        #self.device = torch.device('cuda')
+        print(self.device)
+        # <Training mode>
+        # <dataloder>
+        # train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE, generator=torch.Generator(
+            # 'cpu').manual_seed(0), shuffle=True)
+        dataset = TensorDataset(self.x_cat, self.c_cat, self.t_cat)
+        train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE,
+        shuffle=True)
+
+        for epoch in range(EPOCH):
+            self.net.train()
+            self.loss_all = 0.0
+            count = 0
+            for x_tensor, c_tensor, t_tensor in tqdm(train_dataset):
+                x_tensor = x_tensor.to(self.device, non_blocking=True)
+                c_tensor = c_tensor.to(self.device, non_blocking=True)
+                t_tensor = t_tensor.to(self.device, non_blocking=True)
+
+            # <use data augmentation>
+                # x_tensor = self.noise(x_tensor)
+                # x_tensor = self.blur(x_tensor)
+                # x_tensor = self.transform_color(x_tensor)
+                # x_tensor = self.random_erasing(x_tensor)
+            # <learning>
+                self.optimizer.zero_grad()
+                y_tensor = self.net(x_tensor, c_tensor)
+                loss = self.loss_branch(c_tensor, t_tensor, y_tensor)
+            # print("y_train=",y_train.shape,"t_tensor",t_tensor.shape)
+                loss.backward()
+                self.optimizer.step()
+                self.loss_all += loss.item()
+                count += 1
+
+            average_loss = self.loss_all / count
+            # self.writer.add_scalar("Average Loss per Epoch", average_loss, epoch)
+            print(f"Epoch {epoch+1}, Average Loss: {average_loss:.4f}")
 
     def act_and_trains(self, img, dir_cmd, train_dataset):
         # <Training mode>
